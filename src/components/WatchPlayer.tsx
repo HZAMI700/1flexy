@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Server,
   Download,
@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { MediaItem } from '@/types';
 import { useAppStore } from '@/store/useAppStore';
+import { watchForOverlayInjection, killPlayerOverlays } from '@/lib/player-overlay-killer';
 
 const SERVERS = [
   { id: 'vidfast', name: 'VidFast Primary Server' },
@@ -35,6 +36,16 @@ export const WatchPlayer: React.FC<WatchPlayerProps> = ({
   const [season, setSeason] = useState(initialSeason);
   const [episode, setEpisode] = useState(initialEpisode);
   const [copied, setCopied] = useState(false);
+  const videoWrapperRef = useRef<HTMLDivElement>(null);
+
+  // Eliminate transparent pop-under overlays over player
+  useEffect(() => {
+    if (!videoWrapperRef.current) return;
+    const session = watchForOverlayInjection(videoWrapperRef.current);
+    return () => {
+      session.cleanup();
+    };
+  }, [server, season, episode, media.id]);
 
   const {
     openDownload,
@@ -160,7 +171,10 @@ export const WatchPlayer: React.FC<WatchPlayerProps> = ({
       </div>
 
       {/* Video Container */}
-      <div className="relative w-full aspect-video bg-black flex items-center justify-center">
+      <div
+        ref={videoWrapperRef}
+        className="relative w-full aspect-video bg-black flex items-center justify-center overflow-hidden"
+      >
         <iframe
           key={`${server}-${tmdbId}-${season}-${episode}`}
           src={getEmbedUrl()}
@@ -170,6 +184,11 @@ export const WatchPlayer: React.FC<WatchPlayerProps> = ({
           allow="autoplay; encrypted-media; picture-in-picture; fullscreen; clipboard-write; accelerometer; gyroscope"
           referrerPolicy="no-referrer"
           loading="eager"
+          onLoad={() => {
+            if (videoWrapperRef.current) {
+              killPlayerOverlays(videoWrapperRef.current);
+            }
+          }}
         />
       </div>
 

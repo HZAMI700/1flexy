@@ -6,6 +6,7 @@ import { tmdbApi } from '@/lib/tmdb';
 import { CastCarousel } from '@/components/CastCarousel';
 import { ContentRow } from '@/components/ContentRow';
 import { MovieDetailActions } from '@/components/MovieDetailActions';
+import { getPosterWithFallback } from '@/lib/poster-resolver';
 
 interface Props {
   params: {
@@ -35,6 +36,8 @@ export default async function MovieDetailPage({ params }: Props) {
   if (!movie) {
     notFound();
   }
+
+  const posterImg = getPosterWithFallback(movie);
 
   const year = movie.release_date
     ? new Date(movie.release_date).getFullYear()
@@ -75,15 +78,14 @@ export default async function MovieDetailPage({ params }: Props) {
         <div className="flex flex-col md:flex-row gap-8 items-start">
           {/* Poster Thumbnail */}
           <div className="relative w-48 sm:w-64 aspect-[2/3] rounded-md overflow-hidden shadow-2xl border border-[#282828] flex-shrink-0 bg-[#141414]">
-            {movie.poster_path ? (
-              <Image
-                src={movie.poster_path}
-                alt={movie.title}
-                fill
-                priority
-                className="object-cover"
-              />
-            ) : null}
+            <Image
+              src={posterImg}
+              alt={movie.title}
+              fill
+              priority
+              className="object-cover"
+              unoptimized={posterImg.startsWith('data:')}
+            />
           </div>
 
           {/* Details & Actions */}

@@ -6,6 +6,9 @@ import { Play, Info, Volume2, VolumeX } from 'lucide-react';
 import { MediaItem } from '@/types';
 import { useAppStore } from '@/store/useAppStore';
 
+import { motion } from 'framer-motion';
+import { getPosterWithFallback, generateSvgPlaceholder } from '@/lib/poster-resolver';
+
 interface HeroBillboardProps {
   items: MediaItem[];
 }
@@ -22,6 +25,15 @@ export const HeroBillboard: React.FC<HeroBillboardProps> = ({ items }) => {
   } = useAppStore();
 
   const currentItem = items[currentIndex] || items[0];
+  const [backdropSrc, setBackdropSrc] = useState<string>(
+    currentItem?.backdrop_path || currentItem?.poster_path || ''
+  );
+
+  useEffect(() => {
+    if (currentItem) {
+      setBackdropSrc(currentItem.backdrop_path || currentItem.poster_path || '');
+    }
+  }, [currentItem]);
 
   useEffect(() => {
     if (items.length <= 1) return;
@@ -59,13 +71,20 @@ export const HeroBillboard: React.FC<HeroBillboardProps> = ({ items }) => {
     <div className="relative w-full h-[85vh] min-h-[500px] max-h-[920px] overflow-hidden select-none bg-black">
       {/* High-Resolution Backdrop Image */}
       <div className="absolute inset-0">
-        {currentItem.backdrop_path ? (
+        {backdropSrc ? (
           <Image
-            src={currentItem.backdrop_path}
+            src={backdropSrc}
             alt={currentItem.title}
             fill
             priority
             className="object-cover object-center transition-opacity duration-1000 ease-out"
+            onError={() => {
+              if (currentItem.poster_path && backdropSrc !== currentItem.poster_path) {
+                setBackdropSrc(currentItem.poster_path);
+              } else {
+                setBackdropSrc(generateSvgPlaceholder(currentItem.title, currentItem.media_type));
+              }
+            }}
           />
         ) : (
           <div className="w-full h-full bg-[#141414]" />
@@ -90,9 +109,15 @@ export const HeroBillboard: React.FC<HeroBillboardProps> = ({ items }) => {
         />
       </div>
 
-      {/* Hero Content Positioned Bottom-Left */}
+      {/* Hero Content Positioned Bottom-Left (Fix-004 Animated Fade + Slide Up) */}
       <div className="relative z-10 max-w-[1920px] mx-auto h-full px-[4%] pb-[8%] flex flex-col justify-end">
-        <div className="max-w-[45%] md:max-w-[55%] lg:max-w-[42%] space-y-4">
+        <motion.div
+          key={currentItem.id}
+          initial={{ opacity: 0, y: 35 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.75, ease: [0.25, 0.1, 0.25, 1] }}
+          className="max-w-[85%] sm:max-w-[65%] md:max-w-[55%] lg:max-w-[42%] space-y-4"
+        >
           {/* Title */}
           <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black text-white tracking-tight leading-[1.08] font-display drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">
             {currentItem.title}
@@ -120,25 +145,29 @@ export const HeroBillboard: React.FC<HeroBillboardProps> = ({ items }) => {
 
           {/* Action Buttons: Play & More Info */}
           <div className="flex items-center gap-3 pt-2">
-            {/* Play Button (White with black text) */}
-            <button
+            {/* Play Button */}
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
               onClick={() => openPlayer(currentItem, 1, 1)}
-              className="flex items-center gap-2.5 px-6 sm:px-8 py-2.5 sm:py-3 rounded bg-white text-black font-bold text-sm sm:text-base hover:bg-white/75 transition-colors duration-200 shadow-md"
+              className="flex items-center gap-2.5 px-6 sm:px-8 py-2.5 sm:py-3 rounded bg-white text-black font-bold text-sm sm:text-base hover:bg-white/80 transition-colors shadow-md"
             >
               <Play className="w-5 h-5 fill-current ml-0.5" />
               Play
-            </button>
+            </motion.button>
 
-            {/* More Info Button (Gray translucent) */}
-            <button
+            {/* More Info Button */}
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
               onClick={() => openDetailModal(currentItem)}
-              className="flex items-center gap-2 px-5 sm:px-6 py-2.5 sm:py-3 rounded bg-[rgba(109,109,110,0.7)] hover:bg-[rgba(109,109,110,0.4)] text-white font-bold text-sm sm:text-base transition-colors duration-200 backdrop-blur-sm"
+              className="flex items-center gap-2 px-5 sm:px-6 py-2.5 sm:py-3 rounded bg-[rgba(109,109,110,0.7)] hover:bg-[rgba(109,109,110,0.5)] text-white font-bold text-sm sm:text-base transition-colors backdrop-blur-sm"
             >
               <Info className="w-5 h-5" />
               More Info
-            </button>
+            </motion.button>
           </div>
-        </div>
+        </motion.div>
       </div>
 
       {/* Right-Side Badges: Maturity Rating & Mute Button */}

@@ -48,12 +48,11 @@ export default async function HomePage() {
           variant="poster"
         />
 
-        {/* 3. Top 10 in Your Country Today Row (With Outlined SVG Rank Numbers) */}
+        {/* 3. Top Trending in Your Country Today Row (Numbering removed per Fix-002) */}
         <ContentRow
-          title="Top 10 in Your Country Today"
+          title="Top Trending in Your Country Today"
           items={top10Items}
           variant="poster"
-          showRank={true}
         />
 
         {/* 4. New Releases Row (with NEW badge) */}

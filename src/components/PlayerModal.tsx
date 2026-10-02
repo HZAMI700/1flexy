@@ -18,6 +18,7 @@ import {
   Settings,
 } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
+import { watchForOverlayInjection, killPlayerOverlays } from '@/lib/player-overlay-killer';
 
 const SERVERS = [
   { id: 'vidfast', name: 'VidFast Primary (Fastest)', provider: 'vidfast.vc' },
@@ -43,6 +44,16 @@ export const PlayerModal: React.FC = () => {
   const [copiedLink, setCopiedLink] = useState(false);
   const [autoPlay, setAutoPlay] = useState(true);
   const playerContainerRef = useRef<HTMLDivElement>(null);
+  const videoWrapperRef = useRef<HTMLDivElement>(null);
+
+  // Watch and remove any pop-under click-catchers stacked over player
+  useEffect(() => {
+    if (!isOpen || !videoWrapperRef.current) return;
+    const session = watchForOverlayInjection(videoWrapperRef.current);
+    return () => {
+      session.cleanup();
+    };
+  }, [isOpen, selectedServer, season, episode]);
 
   // Close on Escape key
   useEffect(() => {
@@ -271,7 +282,10 @@ export const PlayerModal: React.FC = () => {
         </div>
 
         {/* Embedded Player Frame */}
-        <div className="relative w-full aspect-video bg-black flex-grow flex items-center justify-center">
+        <div
+          ref={videoWrapperRef}
+          className="relative w-full aspect-video bg-black flex-grow flex items-center justify-center overflow-hidden"
+        >
           <iframe
             key={`${selectedServer}-${tmdbId}-${season}-${episode}`}
             src={getEmbedUrl()}
@@ -281,6 +295,11 @@ export const PlayerModal: React.FC = () => {
             allow="autoplay; encrypted-media; picture-in-picture; fullscreen; clipboard-write; accelerometer; gyroscope"
             referrerPolicy="no-referrer"
             loading="eager"
+            onLoad={() => {
+              if (videoWrapperRef.current) {
+                killPlayerOverlays(videoWrapperRef.current);
+              }
+            }}
           />
         </div>
 

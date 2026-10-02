@@ -2,9 +2,11 @@
 
 import React, { useState } from 'react';
 import Image from 'next/image';
+import { motion } from 'framer-motion';
 import { Play, Download } from 'lucide-react';
 import { MediaItem, Season, Episode } from '@/types';
 import { useAppStore } from '@/store/useAppStore';
+import { generateSvgPlaceholder } from '@/lib/poster-resolver';
 
 interface EpisodeListProps {
   media: MediaItem;
@@ -76,36 +78,41 @@ export const EpisodeList: React.FC<EpisodeListProps> = ({
 
       {/* Episode Rows List */}
       <div className="divide-y divide-[#282828]">
-        {episodes.map((ep) => (
-          <div
-            key={ep.id}
-            onClick={() => openPlayer(media, selectedSeasonNumber, ep.episode_number)}
-            className="py-5 px-3 rounded hover:bg-[#1f1f1f] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition-colors cursor-pointer group"
-          >
-            <div className="flex items-center gap-4 flex-grow min-w-0 w-full sm:w-auto">
-              {/* Episode Number */}
-              <span className="text-xl font-bold text-[#808080] w-6 text-center flex-shrink-0">
-                {ep.episode_number}
-              </span>
+        {episodes.map((ep) => {
+          const thumbSrc =
+            ep.still_path || media.backdrop_path || media.poster_path || generateSvgPlaceholder(ep.name);
 
-              {/* Thumbnail */}
-              <div className="relative w-32 sm:w-40 aspect-video rounded overflow-hidden bg-black flex-shrink-0">
-                {ep.still_path ? (
+          return (
+            <motion.div
+              key={ep.id}
+              whileHover={{ scale: 1.01, backgroundColor: '#1f1f1f' }}
+              transition={{ duration: 0.2 }}
+              onClick={() => openPlayer(media, selectedSeasonNumber, ep.episode_number)}
+              className="py-5 px-3 rounded flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition-colors cursor-pointer group"
+            >
+              <div className="flex items-center gap-4 flex-grow min-w-0 w-full sm:w-auto">
+                {/* Episode Number */}
+                <span className="text-xl font-bold text-[#808080] w-6 text-center flex-shrink-0">
+                  {ep.episode_number}
+                </span>
+
+                {/* Thumbnail */}
+                <div className="relative w-32 sm:w-40 aspect-video rounded overflow-hidden bg-black flex-shrink-0">
                   <Image
-                    src={ep.still_path}
+                    src={thumbSrc}
                     alt={ep.name}
                     fill
                     className="object-cover group-hover:scale-105 transition-transform duration-300"
+                    unoptimized={thumbSrc.startsWith('data:')}
                   />
-                ) : null}
 
-                {/* Hover Play Button */}
-                <div className="absolute inset-0 bg-black/30 group-hover:bg-black/10 flex items-center justify-center transition-colors">
-                  <div className="w-8 h-8 rounded-full border border-white bg-black/60 flex items-center justify-center text-white">
-                    <Play className="w-4 h-4 fill-current ml-0.5" />
+                  {/* Hover Play Button */}
+                  <div className="absolute inset-0 bg-black/30 group-hover:bg-black/10 flex items-center justify-center transition-colors">
+                    <div className="w-8 h-8 rounded-full border border-white bg-black/60 flex items-center justify-center text-white shadow-lg">
+                      <Play className="w-4 h-4 fill-current ml-0.5" />
+                    </div>
                   </div>
                 </div>
-              </div>
 
               {/* Details */}
               <div className="min-w-0 flex-grow">
@@ -134,9 +141,10 @@ export const EpisodeList: React.FC<EpisodeListProps> = ({
             >
               <Download className="w-4 h-4" />
             </button>
-          </div>
-        ))}
-      </div>
+          </motion.div>
+        );
+      })}
+    </div>
     </div>
   );
 };

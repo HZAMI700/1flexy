@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   X,
   Play,
@@ -17,6 +18,7 @@ import {
 } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import { Episode, Season } from '@/types';
+import { getPosterWithFallback, generateSvgPlaceholder } from '@/lib/poster-resolver';
 
 export const DetailModal: React.FC = () => {
   const {
@@ -101,19 +103,27 @@ export const DetailModal: React.FC = () => {
         }));
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-start justify-center pt-8 sm:pt-14 px-2 sm:px-4 bg-black/75 backdrop-blur-sm overflow-y-auto animate-fadeIn"
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.25 }}
+      className="fixed inset-0 z-50 flex items-start justify-center pt-8 sm:pt-14 px-2 sm:px-4 bg-black/80 backdrop-blur-sm overflow-y-auto"
       onClick={closeDetailModal}
     >
-      <div
-        className="relative bg-[#181818] rounded-lg max-w-4xl w-full overflow-hidden shadow-modal border border-[#282828] text-white my-8"
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95, y: 30 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: 30 }}
+        transition={{ duration: 0.32, ease: [0.25, 0.1, 0.25, 1] }}
+        className="relative bg-[#181818] rounded-lg max-w-4xl w-full overflow-hidden shadow-2xl border border-[#282828] text-white my-8"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Top Hero Media Banner */}
         <div className="relative aspect-video w-full bg-black">
-          {media.backdrop_path ? (
+          {media.backdrop_path || media.poster_path ? (
             <Image
-              src={media.backdrop_path}
+              src={media.backdrop_path || media.poster_path!}
               alt={media.title}
               fill
               priority
@@ -329,38 +339,40 @@ export const DetailModal: React.FC = () => {
               More Like This
             </h3>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-              {media.similar.slice(0, 6).map((sim) => (
-                <div
-                  key={sim.id}
-                  onClick={() => openPlayer(sim, 1, 1)}
-                  className="bg-[#242424] rounded overflow-hidden group cursor-pointer hover:bg-[#2e2e2e] transition-colors flex flex-col"
-                >
-                  <div className="relative aspect-video w-full bg-black">
-                    {sim.backdrop_path || sim.poster_path ? (
+              {media.similar.slice(0, 6).map((sim) => {
+                const simImg = getPosterWithFallback(sim);
+                return (
+                  <div
+                    key={sim.id}
+                    onClick={() => openPlayer(sim, 1, 1)}
+                    className="bg-[#242424] rounded overflow-hidden group cursor-pointer hover:bg-[#2e2e2e] transition-colors flex flex-col"
+                  >
+                    <div className="relative aspect-video w-full bg-black">
                       <Image
-                        src={sim.backdrop_path || sim.poster_path!}
+                        src={simImg}
                         alt={sim.title}
                         fill
                         className="object-cover"
+                        unoptimized={simImg.startsWith('data:')}
                       />
-                    ) : null}
-                  </div>
-                  <div className="p-3 space-y-1.5 flex flex-col justify-between flex-grow">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-[#46D369] font-bold">96% Match</span>
-                      <span className="px-1 border border-[#808080] text-[10px] text-white">
-                        HD
-                      </span>
                     </div>
-                    <h5 className="font-bold text-sm text-white line-clamp-1">
-                      {sim.title}
-                    </h5>
-                    <p className="text-xs text-[#B3B3B3] line-clamp-2 leading-snug">
-                      {sim.overview}
-                    </p>
+                    <div className="p-3 space-y-1.5 flex flex-col justify-between flex-grow">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-[#46D369] font-bold">96% Match</span>
+                        <span className="px-1 border border-[#808080] text-[10px] text-white">
+                          HD
+                        </span>
+                      </div>
+                      <h5 className="font-bold text-sm text-white line-clamp-1">
+                        {sim.title}
+                      </h5>
+                      <p className="text-xs text-[#B3B3B3] line-clamp-2 leading-snug">
+                        {sim.overview}
+                      </p>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}
@@ -382,7 +394,7 @@ export const DetailModal: React.FC = () => {
             <span className="text-[#808080]"> — Recommended for mature audiences.</span>
           </div>
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 };

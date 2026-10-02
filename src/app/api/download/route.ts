@@ -1,60 +1,57 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { resolveDownloadWithFallback } from '@/services/downloadProviders';
+import { resolveDownloadLinks, DownloadRequestParams } from '@/services/downloadProviders';
 import { MediaType } from '@/types';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET(request: NextRequest) {
-  const { searchParams } = new URL(request.url);
-  const tmdbId = searchParams.get('tmdbId') || searchParams.get('id') || '533535';
-  const type = (searchParams.get('type') || 'movie') as MediaType;
-  const season = searchParams.get('season') ? parseInt(searchParams.get('season')!, 10) : undefined;
-  const episode = searchParams.get('episode') ? parseInt(searchParams.get('episode')!, 10) : undefined;
-  const title = searchParams.get('title') || 'media';
-  const imdbId = searchParams.get('imdbId') || undefined;
+function extractParams(data: any): DownloadRequestParams {
+  const tmdb_id = data.tmdb_id || data.tmdbId || data.id || '533535';
+  const imdb_id = data.imdb_id || data.imdbId || undefined;
+  const media_type = (data.media_type || data.type || 'movie') as MediaType;
+  const title = data.title || 'media';
+  const year = data.year ? parseInt(data.year, 10) : undefined;
+  const season = data.season ? parseInt(data.season, 10) : undefined;
+  const episode = data.episode ? parseInt(data.episode, 10) : undefined;
 
-  const result = await resolveDownloadWithFallback({
-    tmdbId,
-    type,
+  return {
+    tmdb_id,
+    imdb_id,
+    media_type,
+    title,
+    year,
     season,
     episode,
-    title,
-    imdbId,
+  };
+}
+
+export async function GET(request: NextRequest) {
+  const { searchParams } = new URL(request.url);
+  const data: Record<string, string> = {};
+  searchParams.forEach((value, key) => {
+    data[key] = value;
   });
 
-  return NextResponse.json({
-    success: result.links.length > 0,
-    provider: result.providerName,
-    providerType: result.providerType,
-    hasSubtitles: result.hasSubtitles,
-    links: result.links,
-  });
+  const params = extractParams(data);
+  const result = await resolveDownloadLinks(params);
+
+  return NextResponse.json(result);
 }
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { tmdbId = '533535', type = 'movie', season, episode, title = 'media', imdbId } = body;
+    const params = extractParams(body);
+    const result = await resolveDownloadLinks(params);
 
-    const result = await resolveDownloadWithFallback({
-      tmdbId,
-      type: type as MediaType,
-      season: season ? parseInt(season, 10) : undefined,
-      episode: episode ? parseInt(episode, 10) : undefined,
-      title,
-      imdbId,
-    });
-
-    return NextResponse.json({
-      success: result.links.length > 0,
-      provider: result.providerName,
-      providerType: result.providerType,
-      hasSubtitles: result.hasSubtitles,
-      links: result.links,
-    });
+    return NextResponse.json(result);
   } catch (err: any) {
     return NextResponse.json(
-      { success: false, error: err?.message || 'Invalid request body' },
+      {
+        success: false,
+        provider: 'None',
+        links: [],
+        errors: [{ provider: 'API Handler', error: err?.message || 'Invalid request body' }],
+      },
       { status: 400 }
     );
   }

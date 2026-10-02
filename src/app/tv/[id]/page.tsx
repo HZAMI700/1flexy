@@ -7,6 +7,7 @@ import { CastCarousel } from '@/components/CastCarousel';
 import { EpisodeList } from '@/components/EpisodeList';
 import { ContentRow } from '@/components/ContentRow';
 import { TVDetailActions } from '@/components/TVDetailActions';
+import { getPosterWithFallback } from '@/lib/poster-resolver';
 
 interface Props {
   params: {
@@ -36,6 +37,8 @@ export default async function TVDetailPage({ params }: Props) {
   if (!show) {
     notFound();
   }
+
+  const posterImg = getPosterWithFallback(show);
 
   const year = show.first_air_date
     ? new Date(show.first_air_date).getFullYear()
@@ -73,15 +76,14 @@ export default async function TVDetailPage({ params }: Props) {
         <div className="flex flex-col md:flex-row gap-8 items-start">
           {/* Poster Thumbnail */}
           <div className="relative w-48 sm:w-64 aspect-[2/3] rounded-md overflow-hidden shadow-2xl border border-[#282828] flex-shrink-0 bg-[#141414]">
-            {show.poster_path ? (
-              <Image
-                src={show.poster_path}
-                alt={show.title}
-                fill
-                priority
-                className="object-cover"
-              />
-            ) : null}
+            <Image
+              src={posterImg}
+              alt={show.title}
+              fill
+              priority
+              className="object-cover"
+              unoptimized={posterImg.startsWith('data:')}
+            />
           </div>
 
           {/* Details & Actions */}

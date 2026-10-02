@@ -54,7 +54,7 @@ export const MOCK_HERO_ITEMS: MediaItem[] = [
     overview:
       'Follow the mythic journey of Paul Atreides as he unites with Chani and the Fremen while on a path of revenge against the conspirators who destroyed his family. Facing a choice between the love of his life and the fate of the known universe, he endeavors to prevent a terrible future only he can foresee.',
     poster_path: 'https://image.tmdb.org/t/p/w500/1pdfLvkbY9ohJlCjQH2CZjjYVvJ.jpg',
-    backdrop_path: 'https://image.tmdb.org/t/p/original/xOMo8BRK7PfcJv9JCnx7s520092.jpg',
+    backdrop_path: 'https://image.tmdb.org/t/p/original/eZ239CUp1d6OryZEBPnO2n87gMG.jpg',
     vote_average: 8.2,
     vote_count: 6100,
     release_date: '2024-02-27',
@@ -79,7 +79,7 @@ export const MOCK_HERO_ITEMS: MediaItem[] = [
     title: 'Arcane',
     overview:
       'Amid the stark discord of twin cities Piltover and Zaun, two sisters fight on rival sides of a war between magic technologies and incompatible convictions.',
-    poster_path: 'https://image.tmdb.org/t/p/w500/fqldf2t8ztc9aiwn397rWW2vvg.jpg',
+    poster_path: 'https://image.tmdb.org/t/p/w500/fqldf2t8ztc9aiwn3k6mlX3tvRT.jpg',
     backdrop_path: 'https://image.tmdb.org/t/p/original/uDgy6hyPd82kOHh6I95FLtLnj6p.jpg',
     vote_average: 8.7,
     vote_count: 4200,
@@ -101,11 +101,11 @@ export const MOCK_HERO_ITEMS: MediaItem[] = [
         name: 'Season 1',
         episode_count: 9,
         episodes: [
-          { id: 1, episode_number: 1, season_number: 1, name: 'Welcome to the Playground', overview: 'Orphaned sisters Vi and Powder bring trouble to Zaun\'s underground streets following a heist in posh Piltover.', still_path: 'https://image.tmdb.org/t/p/w500/abfJJ0G2x83k0XGqX3kYg2P.jpg', runtime: 43 },
-          { id: 2, episode_number: 2, season_number: 1, name: 'Some Mysteries Are Better Left Unsolved', overview: 'Idealistic inventor Jayce attempts to harness magic through science — despite his mentor\'s warnings.', still_path: 'https://image.tmdb.org/t/p/w500/5k7mZ5a2y9G6Q5V4P1k3Q8k1.jpg', runtime: 41 },
-          { id: 3, episode_number: 3, season_number: 1, name: 'The Base Violence Necessary for Change', overview: 'An epic showdown between old rivals results in a fateful moment for Zaun. Jayce and Viktor risk everything.', still_path: 'https://image.tmdb.org/t/p/w500/8k1xY9k2x6X4b7a1g4G9z1Q3.jpg', runtime: 44 },
-          { id: 4, episode_number: 4, season_number: 1, name: 'Happy Progress Day!', overview: 'With Piltover flourishing on their tech, Jayce and Viktor ponder their next move. A familiar face returns.', still_path: 'https://image.tmdb.org/t/p/w500/7a2xY9b4v6X1c3d9g2Z8a1b5.jpg', runtime: 40 },
-          { id: 5, episode_number: 5, season_number: 1, name: 'Everybody Wants to Be My Enemy', overview: 'Rogue enforcer Caitlyn tours the Undercity to track down Jinx. Jayce becomes a target in Piltover politics.', still_path: 'https://image.tmdb.org/t/p/w500/3c5b8v7x9z1a4c6e8g2b1d3.jpg', runtime: 40 },
+          { id: 1, episode_number: 1, season_number: 1, name: 'Welcome to the Playground', overview: 'Orphaned sisters Vi and Powder bring trouble to Zaun\'s underground streets following a heist in posh Piltover.', still_path: 'https://image.tmdb.org/t/p/w500/uDgy6hyPd82kOHh6I95FLtLnj6p.jpg', runtime: 43 },
+          { id: 2, episode_number: 2, season_number: 1, name: 'Some Mysteries Are Better Left Unsolved', overview: 'Idealistic inventor Jayce attempts to harness magic through science — despite his mentor\'s warnings.', still_path: 'https://image.tmdb.org/t/p/w500/uDgy6hyPd82kOHh6I95FLtLnj6p.jpg', runtime: 41 },
+          { id: 3, episode_number: 3, season_number: 1, name: 'The Base Violence Necessary for Change', overview: 'An epic showdown between old rivals results in a fateful moment for Zaun. Jayce and Viktor risk everything.', still_path: 'https://image.tmdb.org/t/p/w500/uDgy6hyPd82kOHh6I95FLtLnj6p.jpg', runtime: 44 },
+          { id: 4, episode_number: 4, season_number: 1, name: 'Happy Progress Day!', overview: 'With Piltover flourishing on their tech, Jayce and Viktor ponder their next move. A familiar face returns.', still_path: 'https://image.tmdb.org/t/p/w500/uDgy6hyPd82kOHh6I95FLtLnj6p.jpg', runtime: 40 },
+          { id: 5, episode_number: 5, season_number: 1, name: 'Everybody Wants to Be My Enemy', overview: 'Rogue enforcer Caitlyn tours the Undercity to track down Jinx. Jayce becomes a target in Piltover politics.', still_path: 'https://image.tmdb.org/t/p/w500/uDgy6hyPd82kOHh6I95FLtLnj6p.jpg', runtime: 40 },
         ],
       },
       {
@@ -115,7 +115,7 @@ export const MOCK_HERO_ITEMS: MediaItem[] = [
         episode_count: 9,
         episodes: [
           { id: 10, episode_number: 1, season_number: 2, name: 'Heavy Is the Crown', overview: 'In the aftermath of the Council attack, Piltover mobilizes for war while Zaun fractures into warring factions.', still_path: 'https://image.tmdb.org/t/p/w500/uDgy6hyPd82kOHh6I95FLtLnj6p.jpg', runtime: 45 },
-          { id: 11, episode_number: 2, season_number: 2, name: 'Watch It All Burn', overview: 'Vi struggles with grief and identity. Jinx becomes an accidental icon of rebellion across the Undercity.', still_path: 'https://image.tmdb.org/t/p/w500/abfJJ0G2x83k0XGqX3kYg2P.jpg', runtime: 44 },
+          { id: 11, episode_number: 2, season_number: 2, name: 'Watch It All Burn', overview: 'Vi struggles with grief and identity. Jinx becomes an accidental icon of rebellion across the Undercity.', still_path: 'https://image.tmdb.org/t/p/w500/uDgy6hyPd82kOHh6I95FLtLnj6p.jpg', runtime: 44 },
         ],
       },
     ],
@@ -127,7 +127,7 @@ export const MOCK_HERO_ITEMS: MediaItem[] = [
     title: 'The Last of Us',
     overview:
       'Twenty years after modern civilization has been destroyed, Joel, a hardened survivor, is hired to smuggle Ellie, a 14-year-old girl, out of an oppressive quarantine zone. What starts as a small job soon becomes a brutal, heartbreaking journey.',
-    poster_path: 'https://image.tmdb.org/t/p/w500/uKvVjHNqB5VmOrdxqmi2979aqbL.jpg',
+    poster_path: 'https://image.tmdb.org/t/p/w500/dmo6TYuuJgaYinXBPjrgG9mB5od.jpg',
     backdrop_path: 'https://image.tmdb.org/t/p/original/uDgy6hyPd82kOHh6I95FLtLnj6p.jpg',
     vote_average: 8.6,
     vote_count: 5100,
@@ -277,7 +277,7 @@ export const MOCK_POPULAR_MOVIES: MediaItem[] = [
     overview:
       'As the Avengers and their allies have continued to protect the world from threats too large for any one hero to handle, a new danger has emerged from the cosmic shadows: Thanos.',
     poster_path: 'https://image.tmdb.org/t/p/w500/7WsyChQLEftFiDOVTGkv3hFpyyt.jpg',
-    backdrop_path: 'https://image.tmdb.org/t/p/original/mDfJG3LC3Dqb67AZ52xYMnVZul.jpg',
+    backdrop_path: 'https://image.tmdb.org/t/p/original/mDfJG3LC3Dqb67AZ52x3Z0jU0uB.jpg',
     vote_average: 8.3,
     vote_count: 29000,
     release_date: '2018-04-25',
@@ -424,7 +424,7 @@ export const MOCK_POPULAR_TV: MediaItem[] = [
     title: 'Cyberpunk: Edgerunners',
     overview:
       'A street kid trying to survive in a technology and body modification-obsessed city of the future. Having everything to lose, he chooses to stay alive by becoming an edgerunner: a mercenary outlaw also known as a cyberpunk.',
-    poster_path: 'https://image.tmdb.org/t/p/w500/7jswOc6jWwENHjhsq2SAjPz917k.jpg',
+    poster_path: 'https://image.tmdb.org/t/p/w500/v3JuB15WybKmxDeT1hWdK3j6eSJ.jpg',
     backdrop_path: 'https://image.tmdb.org/t/p/original/s16H6tpK2utvwDtzZ8Qy4qm5Emw.jpg',
     vote_average: 8.6,
     vote_count: 2400,
@@ -446,7 +446,7 @@ export const MOCK_POPULAR_TV: MediaItem[] = [
         episode_count: 10,
         episodes: [
           { id: 2419081, episode_number: 1, season_number: 1, name: 'Let You Down', overview: 'David Martinez struggles to fit in at the prestigious Arasaka Academy while his mother works long hours in the paramedic ward.', still_path: 'https://image.tmdb.org/t/p/w500/s16H6tpK2utvwDtzZ8Qy4qm5Emw.jpg', runtime: 25 },
-          { id: 2419082, episode_number: 2, season_number: 1, name: 'Like a Boy', overview: 'Fitted with a military cyberware Sandevistan, David takes revenge on the student who bullied him and catches Lucy\'s eye.', still_path: 'https://image.tmdb.org/t/p/w500/7jswOc6jWwENHjhsq2SAjPz917k.jpg', runtime: 26 },
+          { id: 2419082, episode_number: 2, season_number: 1, name: 'Like a Boy', overview: 'Fitted with a military cyberware Sandevistan, David takes revenge on the student who bullied him and catches Lucy\'s eye.', still_path: 'https://image.tmdb.org/t/p/w500/v3JuB15WybKmxDeT1hWdK3j6eSJ.jpg', runtime: 26 },
         ],
       },
     ],
@@ -458,8 +458,8 @@ export const MOCK_POPULAR_TV: MediaItem[] = [
     title: 'Lucifer',
     overview:
       'Bored and unhappy as the Lord of Hell, Lucifer Morningstar abandoned his throne and retired to Los Angeles, where he has teamed up with LAPD detective Chloe Decker to take down criminals.',
-    poster_path: 'https://image.tmdb.org/t/p/w500/ekZobS2isE6mA53RAiGDG93hBxL.jpg',
-    backdrop_path: 'https://image.tmdb.org/t/p/original/ta5oblHGzbSbtmNZw21B5D34t8W.jpg',
+    poster_path: 'https://image.tmdb.org/t/p/w500/ekZobS8isE6mA53RAiGDG93hBxL.jpg',
+    backdrop_path: 'https://image.tmdb.org/t/p/original/ta5oblpMlEcIPIS2YGcq9XEkWK2.jpg',
     vote_average: 8.5,
     vote_count: 14500,
     first_air_date: '2016-01-25',

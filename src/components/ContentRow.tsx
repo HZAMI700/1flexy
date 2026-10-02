@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useRef, useState } from 'react';
+import { motion } from 'framer-motion';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { MediaItem } from '@/types';
 import { ContentCard, CardVariant } from './ContentCard';
@@ -17,7 +18,6 @@ export const ContentRow: React.FC<ContentRowProps> = ({
   title,
   items,
   variant = 'poster',
-  showRank = false,
 }) => {
   const rowRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
@@ -47,7 +47,13 @@ export const ContentRow: React.FC<ContentRowProps> = ({
   };
 
   return (
-    <section className="relative my-6 sm:my-8 group/row">
+    <motion.section
+      initial={{ opacity: 0, y: 25 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: '-40px' }}
+      transition={{ duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
+      className="relative my-6 sm:my-8 group/row"
+    >
       {/* Row Title */}
       <h2 className="text-[clamp(18px,1.5vw,24px)] font-bold text-[#E5E5E5] px-[4%] mb-3 font-display">
         {title}
@@ -74,15 +80,9 @@ export const ContentRow: React.FC<ContentRowProps> = ({
           style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
         >
           {items.map((item, index) => {
-            const cardVariant = showRank
-              ? 'poster_with_rank'
-              : variant;
-
             const cardWidth =
               variant === 'landscape' || variant === 'landscape_with_progress'
                 ? 'w-[240px] sm:w-[280px] md:w-[320px]'
-                : showRank
-                ? 'w-[170px] sm:w-[210px] md:w-[240px]'
                 : 'w-[140px] sm:w-[180px] md:w-[200px]';
 
             return (
@@ -92,8 +92,7 @@ export const ContentRow: React.FC<ContentRowProps> = ({
               >
                 <ContentCard
                   media={item}
-                  variant={cardVariant}
-                  rank={showRank ? index + 1 : undefined}
+                  variant={variant}
                   isNew={index < 2 && title.toLowerCase().includes('new')}
                 />
               </div>
@@ -112,6 +111,6 @@ export const ContentRow: React.FC<ContentRowProps> = ({
           </button>
         )}
       </div>
-    </section>
+    </motion.section>
   );
 };
