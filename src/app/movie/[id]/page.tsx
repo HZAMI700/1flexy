@@ -4,9 +4,8 @@ import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { tmdbApi } from '@/lib/tmdb';
 import { CastCarousel } from '@/components/CastCarousel';
-import { MediaRow } from '@/components/MediaRow';
+import { ContentRow } from '@/components/ContentRow';
 import { MovieDetailActions } from '@/components/MovieDetailActions';
-import { Star, Clock, Calendar, ShieldCheck, Film } from 'lucide-react';
 
 interface Props {
   params: {
@@ -17,15 +16,13 @@ interface Props {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const movie = await tmdbApi.getMovieDetails(params.id);
   if (!movie) {
-    return { title: 'Movie Not Found - VidFast' };
+    return { title: 'Movie Not Found - Netflix' };
   }
   return {
-    title: `${movie.title} (${
-      movie.release_date ? new Date(movie.release_date).getFullYear() : 'Stream'
-    }) - Watch Online & Download | VidFast`,
+    title: `${movie.title} - Watch on Netflix`,
     description: movie.overview,
     openGraph: {
-      title: `${movie.title} - Watch on VidFast`,
+      title: `${movie.title} - Watch on Netflix`,
       description: movie.overview,
       images: movie.backdrop_path ? [movie.backdrop_path] : [],
     },
@@ -41,12 +38,23 @@ export default async function MovieDetailPage({ params }: Props) {
 
   const year = movie.release_date
     ? new Date(movie.release_date).getFullYear()
-    : null;
+    : 2024;
+
+  const matchScore = Math.min(
+    99,
+    Math.max(86, Math.round((movie.vote_average || 8.0) * 10 + 10))
+  );
+
+  const durationText = movie.runtime
+    ? `${Math.floor(movie.runtime / 60)}h ${movie.runtime % 60}m`
+    : '2h 8m';
+
+  const maturityRating = movie.vote_average >= 8 ? 'TV-MA' : 'PG-13';
 
   return (
-    <div className="min-h-screen bg-background pb-16">
+    <div className="min-h-screen bg-black pb-16">
       {/* 1. Full-width Cinematic Backdrop */}
-      <div className="relative w-full h-[55vh] min-h-[420px] max-h-[620px]">
+      <div className="relative w-full h-[65vh] min-h-[460px] max-h-[720px]">
         {movie.backdrop_path ? (
           <Image
             src={movie.backdrop_path}
@@ -56,17 +64,17 @@ export default async function MovieDetailPage({ params }: Props) {
             className="object-cover object-center"
           />
         ) : (
-          <div className="w-full h-full bg-surface-dark" />
+          <div className="w-full h-full bg-[#141414]" />
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/70 to-background/20" />
-        <div className="absolute inset-0 bg-gradient-to-r from-background via-background/40 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/30 to-transparent" />
       </div>
 
       {/* 2. Hero Content Container */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-44 sm:-mt-56 relative z-10">
+      <div className="max-w-7xl mx-auto px-[4%] -mt-48 sm:-mt-64 relative z-10">
         <div className="flex flex-col md:flex-row gap-8 items-start">
           {/* Poster Thumbnail */}
-          <div className="relative w-48 sm:w-64 aspect-[2/3] rounded-2xl overflow-hidden shadow-2xl border-2 border-surface-border flex-shrink-0 bg-surface">
+          <div className="relative w-48 sm:w-64 aspect-[2/3] rounded-md overflow-hidden shadow-2xl border border-[#282828] flex-shrink-0 bg-[#141414]">
             {movie.poster_path ? (
               <Image
                 src={movie.poster_path}
@@ -75,40 +83,21 @@ export default async function MovieDetailPage({ params }: Props) {
                 priority
                 className="object-cover"
               />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center text-text-muted">
-                No Poster
-              </div>
-            )}
+            ) : null}
           </div>
 
           {/* Details & Actions */}
-          <div className="flex-grow space-y-4 pt-2 md:pt-12">
-            {/* Badges */}
-            <div className="flex flex-wrap items-center gap-2.5 text-xs font-semibold">
-              <span className="px-2.5 py-1 rounded bg-primary text-white font-black uppercase tracking-wider">
-                Movie
+          <div className="flex-grow space-y-4 pt-2 md:pt-16">
+            {/* Metadata Line */}
+            <div className="flex flex-wrap items-center gap-3 text-sm font-semibold">
+              <span className="text-[#46D369] font-bold">{matchScore}% Match</span>
+              <span className="text-[#B3B3B3]">{year}</span>
+              <span className="px-1.5 py-0.2 rounded border border-[#808080] text-xs text-white bg-black/40">
+                {maturityRating}
               </span>
-              {movie.vote_average > 0 && (
-                <span className="flex items-center gap-1 bg-surface-dark/90 px-2.5 py-1 rounded text-amber-400 border border-amber-400/20">
-                  <Star className="w-3.5 h-3.5 fill-current" />
-                  {movie.vote_average.toFixed(1)} / 10
-                </span>
-              )}
-              {year && (
-                <span className="flex items-center gap-1 bg-surface-dark/80 px-2.5 py-1 rounded text-text-secondary border border-surface-border">
-                  <Calendar className="w-3.5 h-3.5" />
-                  {year}
-                </span>
-              )}
-              {movie.runtime && movie.runtime > 0 && (
-                <span className="flex items-center gap-1 bg-surface-dark/80 px-2.5 py-1 rounded text-text-secondary border border-surface-border">
-                  <Clock className="w-3.5 h-3.5" />
-                  {movie.runtime} min
-                </span>
-              )}
-              <span className="flex items-center gap-1 text-primary text-[11px] bg-primary/10 px-2 py-0.5 rounded border border-primary/20">
-                <ShieldCheck className="w-3.5 h-3.5" /> 100% Ad-Free Player
+              <span className="text-[#B3B3B3]">{durationText}</span>
+              <span className="px-1.5 py-0.2 rounded border border-[#808080] text-[10px] font-black uppercase text-white bg-black/40">
+                Ultra HD 4K
               </span>
             </div>
 
@@ -119,34 +108,17 @@ export default async function MovieDetailPage({ params }: Props) {
 
             {/* Tagline */}
             {movie.tagline && (
-              <p className="text-sm font-medium text-accent italic">
+              <p className="text-sm font-medium text-[#B3B3B3] italic">
                 &quot;{movie.tagline}&quot;
               </p>
             )}
 
-            {/* Genre Pills */}
-            {movie.genres && movie.genres.length > 0 && (
-              <div className="flex flex-wrap gap-2 pt-1">
-                {movie.genres.map((g) => (
-                  <span
-                    key={g.id}
-                    className="px-3 py-1 rounded-full text-xs font-medium bg-surface-light border border-surface-border text-text-secondary"
-                  >
-                    {g.name}
-                  </span>
-                ))}
-              </div>
-            )}
-
-            {/* Client-side Action Buttons: Play, Download, Watchlist */}
+            {/* Actions */}
             <MovieDetailActions movie={movie} />
 
             {/* Overview / Synopsis */}
             <div className="pt-2">
-              <h3 className="text-sm font-bold uppercase tracking-wider text-text-muted mb-1.5">
-                Overview
-              </h3>
-              <p className="text-sm sm:text-base text-text-secondary leading-relaxed max-w-3xl">
+              <p className="text-sm sm:text-base text-white/90 leading-relaxed max-w-3xl">
                 {movie.overview}
               </p>
             </div>
@@ -160,13 +132,13 @@ export default async function MovieDetailPage({ params }: Props) {
           </div>
         )}
 
-        {/* 4. Similar / Recommended Titles */}
+        {/* 4. More Like This Row */}
         {movie.similar && movie.similar.length > 0 && (
           <div className="mt-12">
-            <MediaRow
+            <ContentRow
               title="More Like This"
               items={movie.similar}
-              icon={<Film className="w-6 h-6" />}
+              variant="poster"
             />
           </div>
         )}

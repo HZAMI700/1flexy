@@ -4,10 +4,9 @@ import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { tmdbApi } from '@/lib/tmdb';
 import { WatchPlayer } from '@/components/WatchPlayer';
-import { MediaRow } from '@/components/MediaRow';
+import { ContentRow } from '@/components/ContentRow';
 import { EpisodeList } from '@/components/EpisodeList';
-import { ArrowLeft, Film, Tv, ShieldCheck } from 'lucide-react';
-import { MediaType } from '@/types';
+import { ArrowLeft, ShieldCheck } from 'lucide-react';
 
 interface Props {
   params: {
@@ -27,11 +26,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     : await tmdbApi.getTVDetails(params.id);
 
   if (!media) {
-    return { title: 'Watch Media - VidFast' };
+    return { title: 'Watch Media - Netflix' };
   }
 
   return {
-    title: `Watch ${media.title} Online Full HD & 4K | VidFast`,
+    title: `Watch ${media.title} Online Full HD & 4K | Netflix`,
     description: media.overview,
   };
 }
@@ -52,19 +51,19 @@ export default async function WatchPage({ params, searchParams }: Props) {
   const backUrl = isMovie ? `/movie/${media.id}` : `/tv/${media.id}`;
 
   return (
-    <div className="min-h-screen bg-background pb-16">
+    <div className="min-h-screen bg-black text-white pt-20 pb-16">
       {/* Top Bar */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between">
         <Link
           href={backUrl}
-          className="inline-flex items-center gap-1.5 text-xs text-text-secondary hover:text-white transition-colors py-1.5 px-3 rounded-lg bg-surface border border-surface-border"
+          className="inline-flex items-center gap-2 text-xs font-semibold text-[#B3B3B3] hover:text-white transition-colors py-2 px-3.5 rounded bg-[#181818] border border-[#282828] hover:bg-[#282828]"
         >
           <ArrowLeft className="w-4 h-4" />
           Back to Details
         </Link>
-        <div className="flex items-center gap-2 text-xs text-primary bg-primary/10 px-3 py-1 rounded-lg border border-primary/20">
+        <div className="flex items-center gap-2 text-xs text-[#46D369] bg-[#46D369]/10 px-3 py-1.5 rounded border border-[#46D369]/20 font-medium">
           <ShieldCheck className="w-4 h-4" />
-          <span>VidFast Secure Stream Protection</span>
+          <span>VidFast AdShield Active</span>
         </div>
       </div>
 
@@ -91,10 +90,10 @@ export default async function WatchPage({ params, searchParams }: Props) {
       {/* Recommended Titles */}
       {media.similar && media.similar.length > 0 && (
         <div className="max-w-7xl mx-auto mt-12">
-          <MediaRow
-            title="You Might Also Like"
+          <ContentRow
+            title="More Like This"
             items={media.similar}
-            icon={isMovie ? <Film className="w-6 h-6" /> : <Tv className="w-6 h-6" />}
+            variant="poster"
           />
         </div>
       )}

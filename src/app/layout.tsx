@@ -1,44 +1,46 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
-import { Navbar } from '@/components/Navbar';
+import { TopNav } from '@/components/TopNav';
 import { Footer } from '@/components/Footer';
 import { PlayerModal } from '@/components/PlayerModal';
 import { DownloadModal } from '@/components/DownloadModal';
+import { DetailModal } from '@/components/DetailModal';
 import { SearchModal } from '@/components/SearchModal';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { AdBlockerInit } from '@/components/AdBlockerInit';
 
 export const metadata: Metadata = {
-  title: 'VidFast - Stream Movies & TV Shows in 4K UHD',
+  title: 'Netflix - Watch TV Shows Online, Watch Movies Online',
   description:
-    'Experience high-speed 4K movie & TV show streaming with VidFast. Zero intrusive pop-under ads, multi-server embeds, and direct high-speed Fasel HD downloads.',
+    'Watch Netflix movies & TV shows online or stream right to your smart TV, game console, PC, Mac, mobile, tablet and more.',
   keywords: [
+    'watch movies',
+    'movies online',
+    'watch TV',
+    'TV online',
+    'TV shows online',
+    'watch series',
     'streaming',
+    'netflix clone',
     'vidfast',
-    '1flex',
-    'watch movies online',
-    'stream tv shows',
-    'hd streaming',
-    'fasel hd download',
-    'free movies',
   ],
-  authors: [{ name: 'VidFast Engineering' }],
+  authors: [{ name: 'Netflix Clone Engineering' }],
   manifest: '/manifest.json',
   icons: {
     icon: '/favicon.ico',
     apple: '/apple-icon.png',
   },
   openGraph: {
-    title: 'VidFast - Stream Movies & TV Shows in 4K UHD',
+    title: 'Netflix - Watch TV Shows Online, Watch Movies Online',
     description:
-      'Ultra high-speed movie and series streaming platform with zero pop-up ads and multi-quality downloads.',
-    siteName: 'VidFast',
+      'Unlimited movies, TV shows, and more. Watch anywhere. Cancel anytime.',
+    siteName: 'Netflix',
     type: 'website',
   },
 };
 
 export const viewport: Viewport = {
-  themeColor: '#0a0a0f',
+  themeColor: '#000000',
   width: 'device-width',
   initialScale: 1,
 };
@@ -49,18 +51,19 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en" className="dark bg-black">
       <head>
         <link rel="preconnect" href="https://image.tmdb.org" />
         <link rel="preconnect" href="https://vidfast.vc" />
       </head>
-      <body className="bg-background text-white min-h-screen flex flex-col selection:bg-primary selection:text-white">
+      <body className="bg-black text-white min-h-screen flex flex-col selection:bg-[#E50914] selection:text-white overflow-x-hidden">
         <AdBlockerInit />
-        <Navbar />
-        <main className="flex-grow pt-16">
+        <TopNav />
+        <main className="flex-grow">
           <ErrorBoundary>{children}</ErrorBoundary>
         </main>
         <Footer />
+        <DetailModal />
         <PlayerModal />
         <DownloadModal />
         <SearchModal />

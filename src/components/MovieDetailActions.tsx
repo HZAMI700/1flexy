@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Play, Download, Bookmark, BookmarkCheck, Share2, Check } from 'lucide-react';
+import { Play, Download, Plus, Check, ThumbsUp, Share2 } from 'lucide-react';
 import { MediaItem } from '@/types';
 import { useAppStore } from '@/store/useAppStore';
 
@@ -10,10 +10,18 @@ interface MovieDetailActionsProps {
 }
 
 export const MovieDetailActions: React.FC<MovieDetailActionsProps> = ({ movie }) => {
-  const { openPlayer, openDownload, watchlist, toggleWatchlist } = useAppStore();
+  const {
+    openPlayer,
+    openDownload,
+    watchlist,
+    toggleWatchlist,
+    likedTitles,
+    toggleLike,
+  } = useAppStore();
   const [copied, setCopied] = useState(false);
 
   const isSaved = watchlist.some((item) => item.id.toString() === movie.id.toString());
+  const isLiked = likedTitles.includes(movie.id);
 
   const handleShare = () => {
     if (typeof window !== 'undefined') {
@@ -25,51 +33,51 @@ export const MovieDetailActions: React.FC<MovieDetailActionsProps> = ({ movie })
 
   return (
     <div className="flex flex-wrap items-center gap-3 pt-4">
-      {/* Play Button */}
+      {/* Play Button (Netflix White) */}
       <button
         onClick={() => openPlayer(movie, 1, 1)}
-        className="flex items-center gap-2.5 px-7 py-3.5 rounded-xl bg-primary hover:bg-accent-hover text-white font-bold text-sm shadow-glow hover:scale-105 transition-all duration-200"
+        className="flex items-center gap-2.5 px-8 py-3 rounded bg-white text-black font-bold text-base hover:bg-white/80 transition-colors shadow-lg"
       >
         <Play className="w-5 h-5 fill-current ml-0.5" />
-        Watch Movie Now
+        Play
       </button>
 
-      {/* Download Button (Fasel HD) */}
+      {/* Download Button (Multi-provider) */}
       <button
         onClick={() => openDownload(movie)}
-        className="flex items-center gap-2 px-6 py-3.5 rounded-xl bg-surface hover:bg-surface-light border border-surface-border text-white font-semibold text-sm transition-all duration-200 hover:border-primary/50"
+        className="flex items-center gap-2 px-6 py-3 rounded bg-[rgba(109,109,110,0.7)] hover:bg-[rgba(109,109,110,0.4)] text-white font-bold text-base transition-colors"
       >
-        <Download className="w-4 h-4 text-primary" />
-        Download (Fasel HD)
+        <Download className="w-4 h-4 text-[#E50914]" />
+        Download
       </button>
 
-      {/* Watchlist Toggle */}
+      {/* My List Circle */}
       <button
         onClick={() => toggleWatchlist(movie)}
-        className={`flex items-center gap-2 px-4 py-3.5 rounded-xl border transition-all duration-200 text-sm font-medium ${
-          isSaved
-            ? 'bg-primary/20 border-primary text-primary'
-            : 'bg-surface hover:bg-surface-light border-surface-border text-text-secondary hover:text-white'
-        }`}
+        className="w-11 h-11 rounded-full border border-white/70 bg-[#2a2a2a]/60 hover:border-white text-white flex items-center justify-center transition-transform hover:scale-110"
+        title={isSaved ? 'In My List' : 'Add to My List'}
       >
-        {isSaved ? (
-          <>
-            <BookmarkCheck className="w-4 h-4" /> Saved
-          </>
-        ) : (
-          <>
-            <Bookmark className="w-4 h-4" /> Watchlist
-          </>
-        )}
+        {isSaved ? <Check className="w-5 h-5 text-[#46D369]" /> : <Plus className="w-5 h-5" />}
+      </button>
+
+      {/* Thumbs Up / Like Circle */}
+      <button
+        onClick={() => toggleLike(movie.id)}
+        className={`w-11 h-11 rounded-full border bg-[#2a2a2a]/60 flex items-center justify-center transition-transform hover:scale-110 ${
+          isLiked ? 'border-[#46D369] text-[#46D369]' : 'border-white/70 text-white hover:border-white'
+        }`}
+        title="I like this"
+      >
+        <ThumbsUp className="w-4 h-4" />
       </button>
 
       {/* Share Button */}
       <button
         onClick={handleShare}
-        className="p-3.5 rounded-xl bg-surface hover:bg-surface-light border border-surface-border text-text-secondary hover:text-white transition-all"
-        title="Share Movie"
+        className="w-11 h-11 rounded-full border border-white/70 bg-[#2a2a2a]/60 hover:border-white text-white flex items-center justify-center transition-transform hover:scale-110"
+        title="Share"
       >
-        {copied ? <Check className="w-4 h-4 text-primary" /> : <Share2 className="w-4 h-4" />}
+        {copied ? <Check className="w-5 h-5 text-[#46D369]" /> : <Share2 className="w-4 h-4" />}
       </button>
     </div>
   );

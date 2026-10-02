@@ -95,15 +95,15 @@ export const WatchPlayer: React.FC<WatchPlayerProps> = ({
   };
 
   return (
-    <div className="bg-surface-dark border border-surface-border rounded-2xl overflow-hidden shadow-2xl flex flex-col">
+    <div className="bg-[#141414] border border-[#282828] rounded-lg overflow-hidden shadow-2xl flex flex-col">
       {/* Top Controls Bar */}
-      <div className="flex items-center justify-between px-4 sm:px-6 py-3.5 bg-surface border-b border-surface-border flex-wrap gap-2">
+      <div className="flex items-center justify-between px-4 sm:px-6 py-3.5 bg-[#181818] border-b border-[#282828] flex-wrap gap-2">
         <div className="flex items-center gap-2 sm:gap-3">
-          <h1 className="text-base sm:text-lg font-black text-white font-display line-clamp-1">
+          <h1 className="text-base sm:text-lg font-bold text-white font-display line-clamp-1">
             {media.title}
           </h1>
           {media.media_type === 'tv' && (
-            <span className="px-2 py-0.5 rounded bg-primary/20 text-accent text-xs font-semibold">
+            <span className="px-2 py-0.5 rounded bg-[#E50914]/20 text-[#E50914] text-xs font-semibold">
               S{season} : E{episode}
             </span>
           )}
@@ -112,11 +112,11 @@ export const WatchPlayer: React.FC<WatchPlayerProps> = ({
         <div className="flex items-center gap-2 flex-wrap">
           {/* Server Selector */}
           <div className="flex items-center gap-1.5">
-            <Server className="w-3.5 h-3.5 text-text-muted hidden sm:inline" />
+            <Server className="w-3.5 h-3.5 text-[#808080] hidden sm:inline" />
             <select
               value={server}
               onChange={(e) => setServer(e.target.value)}
-              className="bg-surface-light border border-surface-border text-white text-xs rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-primary cursor-pointer font-medium"
+              className="bg-[#242424] border border-[#383838] text-white text-xs rounded px-2.5 py-1.5 focus:outline-none focus:border-[#E50914] cursor-pointer font-medium"
             >
               {SERVERS.map((srv) => (
                 <option key={srv.id} value={srv.id}>
@@ -129,19 +129,19 @@ export const WatchPlayer: React.FC<WatchPlayerProps> = ({
           {/* Fasel HD Download */}
           <button
             onClick={() => openDownload(media, season, episode)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-light hover:bg-surface-border text-xs text-text-secondary hover:text-white font-medium transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded bg-[#242424] hover:bg-[#333333] text-xs text-[#B3B3B3] hover:text-white font-medium transition-colors border border-[#383838]"
           >
-            <Download className="w-3.5 h-3.5 text-primary" />
+            <Download className="w-3.5 h-3.5 text-[#E50914]" />
             <span className="hidden sm:inline">Download</span>
           </button>
 
           {/* Favorite */}
           <button
             onClick={() => toggleFavorite(media)}
-            className={`p-1.5 rounded-lg transition-colors ${
+            className={`p-1.5 rounded transition-colors border ${
               isFav
-                ? 'bg-primary/20 text-primary border border-primary/40'
-                : 'bg-surface-light text-text-secondary hover:text-white'
+                ? 'bg-[#E50914]/20 text-[#E50914] border-[#E50914]/40'
+                : 'bg-[#242424] border-[#383838] text-[#B3B3B3] hover:text-white'
             }`}
             title="Favorite"
           >
@@ -151,10 +151,10 @@ export const WatchPlayer: React.FC<WatchPlayerProps> = ({
           {/* Share */}
           <button
             onClick={handleShare}
-            className="p-1.5 rounded-lg bg-surface-light hover:bg-surface-border text-text-secondary hover:text-white transition-colors"
+            className="p-1.5 rounded bg-[#242424] border border-[#383838] hover:bg-[#333333] text-[#B3B3B3] hover:text-white transition-colors"
             title="Share"
           >
-            {copied ? <Check className="w-4 h-4 text-primary" /> : <Share2 className="w-4 h-4" />}
+            {copied ? <Check className="w-4 h-4 text-[#46D369]" /> : <Share2 className="w-4 h-4" />}
           </button>
         </div>
       </div>
@@ -174,8 +174,8 @@ export const WatchPlayer: React.FC<WatchPlayerProps> = ({
       </div>
 
       {/* Bottom Bar Info */}
-      <div className="px-6 py-3 bg-surface text-xs flex items-center justify-between border-t border-surface-border text-text-muted flex-wrap gap-2">
-        <div className="flex items-center gap-2 text-primary">
+      <div className="px-6 py-3 bg-[#181818] text-xs flex items-center justify-between border-t border-[#282828] text-[#808080] flex-wrap gap-2">
+        <div className="flex items-center gap-2 text-[#46D369]">
           <ShieldCheck className="w-4 h-4" />
           <span>VidFast AdShield Active: Zero pop-ups or redirect loops</span>
         </div>

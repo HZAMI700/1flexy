@@ -2,21 +2,17 @@
 
 import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Search, Film, Tv, Flame, Star, Filter, Loader2 } from 'lucide-react';
-import { MediaCard } from '@/components/MediaCard';
-import { MediaGridSkeleton } from '@/components/SkeletonLoaders';
+import { Search, X, Loader2 } from 'lucide-react';
+import { ContentCard } from '@/components/ContentCard';
 import { tmdbApi } from '@/lib/tmdb';
 import { MediaItem } from '@/types';
 
-function SearchContent() {
+function NetflixSearchContent() {
   const searchParams = useSearchParams();
   const initialQuery = searchParams.get('q') || '';
   const initialType = searchParams.get('type') || 'all';
-  const initialSort = searchParams.get('sort') || '';
 
   const [query, setQuery] = useState(initialQuery);
-  const [selectedType, setSelectedType] = useState<string>(initialType);
-  const [sortBy, setSortBy] = useState<string>(initialSort);
   const [results, setResults] = useState<MediaItem[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -30,44 +26,21 @@ function SearchContent() {
 
         if (query.trim()) {
           items = await tmdbApi.searchMulti(query.trim());
-        } else if (sortBy === 'trending') {
-          items = await tmdbApi.getTrending();
-        } else if (sortBy === 'top_rated') {
-          const movies = await tmdbApi.getTopRatedMovies();
-          const tvs = await tmdbApi.getTopRatedTV();
-          items = [...movies, ...tvs].sort((a, b) => b.vote_average - a.vote_average);
-        } else if (selectedType === 'movie') {
+        } else if (initialType === 'movie') {
           items = await tmdbApi.getPopularMovies();
-        } else if (selectedType === 'tv') {
+        } else if (initialType === 'tv') {
           items = await tmdbApi.getPopularTV();
         } else {
-          // Default popular mix
+          const trending = await tmdbApi.getTrending();
           const movies = await tmdbApi.getPopularMovies();
-          const tvs = await tmdbApi.getPopularTV();
-          items = [...movies, ...tvs];
-        }
-
-        // Filter by type if not all
-        if (selectedType !== 'all') {
-          items = items.filter((item) => item.media_type === selectedType);
-        }
-
-        // Apply sorting
-        if (sortBy === 'rating') {
-          items = [...items].sort((a, b) => b.vote_average - a.vote_average);
-        } else if (sortBy === 'year') {
-          items = [...items].sort((a, b) => {
-            const dateA = new Date(a.release_date || a.first_air_date || '1970').getTime();
-            const dateB = new Date(b.release_date || b.first_air_date || '1970').getTime();
-            return dateB - dateA;
-          });
+          items = [...trending, ...movies];
         }
 
         if (isMounted) {
           setResults(items);
         }
       } catch (err) {
-        console.error('Failed to search:', err);
+        console.error('Search error:', err);
       } finally {
         if (isMounted) setLoading(false);
       }
@@ -78,102 +51,71 @@ function SearchContent() {
       isMounted = false;
       clearTimeout(handler);
     };
-  }, [query, selectedType, sortBy]);
+  }, [query, initialType]);
 
   return (
-    <div className="min-h-screen bg-background max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      {/* Search Header */}
-      <div className="mb-8 space-y-4">
-        <h1 className="text-3xl font-black text-white font-display">
-          Search & Browse Media
-        </h1>
-        <p className="text-sm text-text-muted">
-          Instant search across millions of movies, TV shows, and series
-        </p>
-
-        {/* Input Bar */}
-        <div className="relative max-w-2xl">
-          <Search className="w-5 h-5 text-primary absolute left-4 top-1/2 -translate-y-1/2" />
+    <div className="min-h-screen bg-black px-[4%] pt-28 pb-16">
+      {/* Search Bar Input */}
+      <div className="max-w-2xl mb-8">
+        <div className="relative flex items-center bg-black/80 border border-white px-3.5 py-2.5 rounded shadow-lg">
+          <Search className="w-5 h-5 text-white mr-3 flex-shrink-0" />
           <input
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Type a title, actor, or genre..."
-            className="w-full bg-surface border border-surface-border rounded-xl pl-12 pr-4 py-3.5 text-white placeholder-text-muted focus:outline-none focus:border-primary text-sm shadow-md"
+            placeholder="Search titles, actors, genres..."
+            className="w-full bg-transparent text-white placeholder-[#808080] text-sm sm:text-base focus:outline-none font-medium"
+            autoFocus
           />
-        </div>
-      </div>
-
-      {/* Filter Options */}
-      <div className="flex flex-wrap items-center justify-between gap-4 pb-6 border-b border-surface-border">
-        {/* Type Filter Buttons */}
-        <div className="flex items-center gap-2">
-          {[
-            { id: 'all', label: 'All Titles' },
-            { id: 'movie', label: 'Movies Only' },
-            { id: 'tv', label: 'TV Shows Only' },
-          ].map((type) => (
+          {query && (
             <button
-              key={type.id}
-              onClick={() => setSelectedType(type.id)}
-              className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                selectedType === type.id
-                  ? 'bg-primary text-white shadow-glow'
-                  : 'bg-surface text-text-secondary hover:text-white border border-surface-border'
-              }`}
+              onClick={() => setQuery('')}
+              className="text-[#808080] hover:text-white p-1"
             >
-              {type.label}
+              <X className="w-4 h-4" />
             </button>
-          ))}
-        </div>
-
-        {/* Sort Selector */}
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-text-muted font-medium">Sort By:</span>
-          <select
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value)}
-            className="bg-surface border border-surface-border text-white text-xs font-semibold rounded-lg px-3 py-1.5 focus:outline-none focus:border-primary cursor-pointer"
-          >
-            <option value="">Popularity</option>
-            <option value="trending">Trending Now</option>
-            <option value="top_rated">Highest Rated</option>
-            <option value="year">Newest Release</option>
-          </select>
+          )}
         </div>
       </div>
 
       {/* Results Header */}
-      <div className="flex items-center justify-between py-4">
-        <span className="text-xs text-text-muted">
-          {loading ? (
-            'Searching catalog...'
-          ) : (
-            `Showing ${results.length} ${results.length === 1 ? 'title' : 'titles'}`
-          )}
-        </span>
+      <div className="mb-4 text-xs text-[#808080]">
+        {loading ? (
+          'Searching Netflix library...'
+        ) : query ? (
+          <span>
+            Results for &quot;<span className="text-white font-semibold">{query}</span>&quot; ({results.length})
+          </span>
+        ) : (
+          <span>Explore Popular & Trending Titles</span>
+        )}
       </div>
 
-      {/* Results Grid */}
+      {/* Results Grid or Empty State */}
       {loading ? (
-        <div className="py-20 flex flex-col items-center justify-center gap-3 text-text-muted">
-          <Loader2 className="w-8 h-8 text-primary animate-spin" />
-          <p className="text-sm">Fetching titles...</p>
+        <div className="py-20 flex flex-col items-center justify-center gap-3 text-[#808080]">
+          <Loader2 className="w-8 h-8 text-[#E50914] animate-spin" />
+          <p className="text-sm font-semibold">Loading titles...</p>
         </div>
-      ) : results.length === 0 ? (
-        <div className="py-20 text-center space-y-3">
-          <div className="w-16 h-16 rounded-2xl bg-surface border border-surface-border flex items-center justify-center mx-auto text-text-muted">
-            <Search className="w-8 h-8" />
-          </div>
-          <h3 className="text-lg font-bold text-white font-display">No titles found</h3>
-          <p className="text-xs text-text-muted max-w-sm mx-auto">
-            We couldn&apos;t find any media matching &quot;{query}&quot;. Try checking for typos or searching by keyword.
+      ) : query.trim() && results.length === 0 ? (
+        <div className="py-16 max-w-lg text-[#808080] space-y-4">
+          <p className="text-sm text-white">
+            Your search for &quot;<span className="text-[#E50914] font-bold">{query}</span>&quot; did not have any matches.
           </p>
+          <div className="text-xs space-y-2 leading-relaxed">
+            <p className="font-semibold text-[#B3B3B3]">Suggestions:</p>
+            <ul className="list-disc pl-5 space-y-1">
+              <li>Try different keywords</li>
+              <li>Looking for a movie or TV show?</li>
+              <li>Try using a movie, TV show title, an actor or director</li>
+              <li>Try a genre, like comedies, drama, action, sci-fi</li>
+            </ul>
+          </div>
         </div>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 sm:gap-3">
           {results.map((item) => (
-            <MediaCard key={item.id} media={item} />
+            <ContentCard key={item.id} media={item} variant="poster" />
           ))}
         </div>
       )}
@@ -185,13 +127,12 @@ export default function SearchPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-background max-w-7xl mx-auto px-4 py-8">
-          <div className="h-10 w-48 bg-surface rounded mb-8 animate-pulse" />
-          <MediaGridSkeleton count={12} />
+        <div className="min-h-screen bg-black px-[4%] pt-28">
+          <div className="h-10 w-64 bg-[#141414] rounded mb-8 animate-pulse" />
         </div>
       }
     >
-      <SearchContent />
+      <NetflixSearchContent />
     </Suspense>
   );
 }

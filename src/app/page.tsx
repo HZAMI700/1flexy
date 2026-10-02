@@ -1,101 +1,101 @@
 import React from 'react';
-import { HeroBanner } from '@/components/HeroBanner';
-import { MediaRow } from '@/components/MediaRow';
-import { MediaCard } from '@/components/MediaCard';
-import { GenrePills } from '@/components/GenrePills';
-import { ContinueWatchingRow } from '@/components/ContinueWatchingRow';
+import { HeroBillboard } from '@/components/HeroBillboard';
+import { ContentRow } from '@/components/ContentRow';
+import { NetflixDynamicRows } from '@/components/NetflixDynamicRows';
 import { tmdbApi } from '@/lib/tmdb';
-import { Flame, Film, Tv, Sparkles, Trophy } from 'lucide-react';
 
-export const revalidate = 3600; // revalidate at most once every hour
+export const revalidate = 3600;
 
 export default async function HomePage() {
-  // Fetch content in parallel
-  const [trending, popularMovies, topRatedMovies, popularTV, topRatedTV] =
-    await Promise.all([
-      tmdbApi.getTrending(),
-      tmdbApi.getPopularMovies(),
-      tmdbApi.getTopRatedMovies(),
-      tmdbApi.getPopularTV(),
-      tmdbApi.getTopRatedTV(),
-    ]);
+  const [
+    trending,
+    popularMovies,
+    topRatedMovies,
+    popularTV,
+    topRatedTV,
+    actionMovies,
+    comedyMovies,
+  ] = await Promise.all([
+    tmdbApi.getTrending(),
+    tmdbApi.getPopularMovies(),
+    tmdbApi.getTopRatedMovies(),
+    tmdbApi.getPopularTV(),
+    tmdbApi.getTopRatedTV(),
+    tmdbApi.getByGenre(28, 'movie'),
+    tmdbApi.getByGenre(35, 'movie'),
+  ]);
 
   const heroItems = trending.slice(0, 5);
+  const top10Items = [...trending.slice(0, 5), ...popularMovies.slice(0, 5)].slice(0, 10);
+  const newReleases = [...popularMovies.slice(0, 8)];
+  const netflixOriginals = [...popularTV, ...topRatedTV].slice(0, 10);
+  const becauseYouWatched = [...topRatedMovies.slice(0, 8)];
 
   return (
-    <div className="min-h-screen bg-background pb-12">
-      {/* 1. Hero Banner Carousel */}
-      <HeroBanner items={heroItems} />
+    <div className="min-h-screen bg-black pb-12 overflow-x-hidden">
+      {/* 1. Hero Billboard Carousel */}
+      <HeroBillboard items={heroItems} />
 
-      {/* 2. Genre Filter Pills */}
-      <div className="max-w-7xl mx-auto">
-        <GenrePills />
-      </div>
+      {/* Main Content Rows Container */}
+      <div className="-mt-16 sm:-mt-24 relative z-20 space-y-2">
+        {/* Dynamic Client Rows: Continue Watching & My List */}
+        <NetflixDynamicRows />
 
-      {/* 3. Continue Watching Row (Client side LocalStorage progress) */}
-      <div className="max-w-7xl mx-auto">
-        <ContinueWatchingRow />
-      </div>
-
-      {/* 4. Trending Section Horizontal Row */}
-      <div className="max-w-7xl mx-auto">
-        <MediaRow
-          title="Trending This Week"
+        {/* 2. Trending Now Row */}
+        <ContentRow
+          title="Trending Now"
           items={trending}
-          icon={<Flame className="w-6 h-6" />}
-          viewAllHref="/search?sort=trending"
+          variant="poster"
         />
-      </div>
 
-      {/* 5. Popular Movies Grid (Responsive 2 cols mobile -> 6 cols desktop) */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 my-10">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-2.5">
-            <Film className="w-6 h-6 text-primary" />
-            <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight font-display">
-              Popular Movies
-            </h2>
-          </div>
-          <a
-            href="/search?type=movie"
-            className="text-xs sm:text-sm font-semibold text-primary hover:text-accent-hover transition-colors"
-          >
-            Explore All Movies →
-          </a>
-        </div>
-
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-          {popularMovies.slice(0, 12).map((movie, index) => (
-            <MediaCard key={movie.id} media={movie} priority={index < 6} />
-          ))}
-        </div>
-      </section>
-
-      {/* 6. TV Shows Categorized Rows */}
-      <div className="max-w-7xl mx-auto">
-        <MediaRow
-          title="Popular TV Series"
-          items={popularTV}
-          icon={<Tv className="w-6 h-6" />}
-          viewAllHref="/search?type=tv"
+        {/* 3. Top 10 in Your Country Today Row (With Outlined SVG Rank Numbers) */}
+        <ContentRow
+          title="Top 10 in Your Country Today"
+          items={top10Items}
+          variant="poster"
+          showRank={true}
         />
-      </div>
 
-      <div className="max-w-7xl mx-auto">
-        <MediaRow
-          title="Top Rated Blockbusters"
-          items={topRatedMovies}
-          icon={<Trophy className="w-6 h-6" />}
-          viewAllHref="/search?sort=top_rated"
+        {/* 4. New Releases Row (with NEW badge) */}
+        <ContentRow
+          title="New Releases"
+          items={newReleases}
+          variant="new_badge"
         />
-      </div>
 
-      <div className="max-w-7xl mx-auto">
-        <MediaRow
-          title="Acclaimed Series"
+        {/* 5. Netflix Originals */}
+        <ContentRow
+          title="Netflix Originals & Series"
+          items={netflixOriginals}
+          variant="poster"
+        />
+
+        {/* 6. Because you watched Deadpool & Wolverine */}
+        <ContentRow
+          title="Because you watched Deadpool & Wolverine"
+          items={becauseYouWatched}
+          variant="landscape"
+        />
+
+        {/* 7. Action & Adventure */}
+        <ContentRow
+          title="Action & Adventure"
+          items={actionMovies}
+          variant="poster"
+        />
+
+        {/* 8. Comedies */}
+        <ContentRow
+          title="Comedies"
+          items={comedyMovies}
+          variant="poster"
+        />
+
+        {/* 9. Acclaimed TV Dramas */}
+        <ContentRow
+          title="Acclaimed TV Dramas"
           items={topRatedTV}
-          icon={<Sparkles className="w-6 h-6" />}
-          viewAllHref="/search?type=tv&sort=top_rated"
+          variant="landscape"
         />
       </div>
     </div>
