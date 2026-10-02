@@ -20,11 +20,14 @@ import { useAppStore } from '@/store/useAppStore';
 import { watchForOverlayInjection, killPlayerOverlays } from '@/lib/player-overlay-killer';
 import { buildPlayerEmbedUrl, getSavedProgress, StreamingProviderId } from '@/lib/vaplayer';
 import { useVaPlayerEvents } from '@/lib/vaplayer-events';
+import { VidstackPlayer } from '@/components/players/VidstackPlayer';
+import { getPosterWithFallback } from '@/lib/poster-resolver';
+import { DownloadLinkItem } from '@/services/downloadProviders';
 
 const PROVIDERS: { id: StreamingProviderId; name: string; tag: string }[] = [
-  { id: 'vaplayer', name: 'VaPlayer (Primary)', tag: 'Clean / Fast' },
-  { id: 'moviebox', name: 'MovieBox (Secondary)', tag: 'Stream Extractor' },
-  { id: 'vidfast', name: 'VidFast (Fallback)', tag: 'Mirror Server' },
+  { id: 'vaplayer', name: 'VaPlayer (Primary Embed)', tag: 'Clean / Fast' },
+  { id: 'moviebox', name: 'MovieBox (Vidstack Native)', tag: 'Direct Stream (480p)' },
+  { id: 'vidfast', name: 'VidFast (Fallback Embed)', tag: 'Mirror Server' },
 ];
 
 export const PlayerModal: React.FC = () => {
@@ -48,6 +51,11 @@ export const PlayerModal: React.FC = () => {
   const [loadError, setLoadError] = useState(false);
   const [autoNextNotice, setAutoNextNotice] = useState<number | null>(null);
 
+  // Vidstack Native Stream State & Download Links
+  const [directStreamUrl, setDirectStreamUrl] = useState<string | null>(null);
+  const [downloadLinks, setDownloadLinks] = useState<DownloadLinkItem[]>([]);
+  const [streamLoading, setStreamLoading] = useState(false);
+
   const playerContainerRef = useRef<HTMLDivElement>(null);
   const videoWrapperRef = useRef<HTMLDivElement>(null);
   const loadTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -61,6 +69,7 @@ export const PlayerModal: React.FC = () => {
       setResumeSeconds(saved);
       setCurrentProvider('vaplayer');
       setLoadError(false);
+      setDirectStreamUrl(null);
     }
   }, [isOpen, media, season, episode]);
 
@@ -127,6 +136,87 @@ export const PlayerModal: React.FC = () => {
       }
     };
   }, [isOpen, currentProvider, season, episode]);
+
+  // Pre-fetch download links from /api/download for Vidstack Player download button
+  useEffect(() => {
+    const targetMedia = media;
+    if (!isOpen || !targetMedia) return;
+    let isCancelled = false;
+
+    async function fetchDl() {
+      if (!targetMedia) return;
+      try {
+        const res = await fetch('/api/download', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            tmdb_id: targetMedia.tmdb_id || targetMedia.id,
+            imdb_id: targetMedia.imdb_id,
+            media_type: targetMedia.media_type,
+            title: targetMedia.title,
+            season,
+            episode,
+          }),
+        });
+        if (res.ok && !isCancelled) {
+          const data = await res.json();
+          if (data.links && data.links.length > 0) {
+            setDownloadLinks(data.links);
+          }
+        }
+      } catch (e) {
+        console.warn('Failed to pre-fetch download links for Vidstack:', e);
+      }
+    }
+
+    fetchDl();
+    return () => {
+      isCancelled = true;
+    };
+  }, [isOpen, media, season, episode]);
+
+  // Fetch MovieBox direct stream when moviebox provider is selected
+  useEffect(() => {
+    const targetMedia = media;
+    if (!isOpen || !targetMedia || currentProvider !== 'moviebox') {
+      setDirectStreamUrl(null);
+      return;
+    }
+
+    let isCancelled = false;
+    setStreamLoading(true);
+
+    async function fetchStream() {
+      if (!targetMedia) return;
+      try {
+        const res = await fetch(
+          `/api/moviebox/stream?title=${encodeURIComponent(targetMedia.title)}&season=${season}&episode=${episode}`
+        );
+        if (res.ok && !isCancelled) {
+          const data = await res.json();
+          if (data.success && data.streamUrl) {
+            setDirectStreamUrl(data.streamUrl);
+            setStreamLoading(false);
+            return;
+          }
+        }
+      } catch (err) {
+        console.warn('Failed to resolve direct MovieBox stream:', err);
+      }
+
+      if (!isCancelled) {
+        // Fallback to VidFast iframe if direct stream resolution fails
+        console.warn('Direct stream resolution failed, switching to VidFast fallback...');
+        setCurrentProvider('vidfast');
+        setStreamLoading(false);
+      }
+    }
+
+    fetchStream();
+    return () => {
+      isCancelled = true;
+    };
+  }, [isOpen, media, currentProvider, season, episode]);
 
   // Close on Escape key
   useEffect(() => {
@@ -350,16 +440,59 @@ export const PlayerModal: React.FC = () => {
           </div>
         )}
 
-        {/* Embedded Player Frame */}
+        {/* Player Container: Vidstack Player (Native for Direct Streams) or Iframe (Embed Providers) */}
         <div
           ref={videoWrapperRef}
           className="relative w-full aspect-video bg-black flex-grow flex items-center justify-center overflow-hidden"
         >
-          {isSwitching ? (
+          {isSwitching || streamLoading ? (
             <div className="flex flex-col items-center justify-center gap-3 text-[#B3B3B3]">
               <div className="w-8 h-8 border-2 border-[#E50914] border-t-transparent rounded-full animate-spin" />
-              <p className="text-sm">Connecting to {currentProvider === 'vaplayer' ? 'VaPlayer Primary' : currentProvider === 'moviebox' ? 'MovieBox Secondary' : 'VidFast Fallback'}...</p>
+              <p className="text-sm">
+                Connecting to{' '}
+                {currentProvider === 'vaplayer'
+                  ? 'VaPlayer Primary'
+                  : currentProvider === 'moviebox'
+                  ? 'MovieBox Direct Stream (Vidstack Native)'
+                  : 'VidFast Fallback'}
+                ...
+              </p>
             </div>
+          ) : currentProvider === 'moviebox' && directStreamUrl ? (
+            <VidstackPlayer
+              src={directStreamUrl}
+              title={media.title}
+              poster={getPosterWithFallback(media)}
+              mediaId={media.id}
+              mediaType={media.media_type}
+              season={season}
+              episode={episode}
+              downloadUrl={downloadLinks[0]?.url}
+              downloadFilename={`${media.title.replace(/[^a-zA-Z0-9_-]/g, '_')}${media.media_type === 'tv' ? `_S${season}E${episode}` : ''}.mp4`}
+              downloadLinks={downloadLinks}
+              autoPlay={autoPlay}
+              onProgress={(sec) => {
+                saveProgress({
+                  id: media.id,
+                  mediaType: media.media_type,
+                  title: media.title,
+                  poster: media.poster_path,
+                  backdrop: media.backdrop_path,
+                  season,
+                  episode,
+                  currentTime: sec,
+                  duration: 0,
+                  progressPercent: 0,
+                  lastWatched: Date.now(),
+                });
+              }}
+              onError={() => {
+                console.warn('Vidstack stream playback failed, switching to VidFast fallback...');
+                setCurrentProvider('vidfast');
+              }}
+              onBack={closePlayer}
+              onNextEpisode={media.media_type === 'tv' ? handleNextEpisode : undefined}
+            />
           ) : (
             <iframe
               id="player-iframe"
@@ -388,7 +521,7 @@ export const PlayerModal: React.FC = () => {
           <div className="flex items-center gap-3">
             <span className="flex items-center gap-1.5 text-[11px]">
               <span className="w-2 h-2 rounded-full bg-[#E50914] animate-pulse" />
-              Connected: {currentProvider === 'vaplayer' ? 'VaPlayer Primary (vidapi.ru)' : currentProvider === 'moviebox' ? 'MovieBox Secondary (Stream Extractor)' : 'VidFast.vc Fallback'}
+              Connected: {currentProvider === 'vaplayer' ? 'VaPlayer Primary (vidapi.ru)' : currentProvider === 'moviebox' ? 'MovieBox Vidstack Native (Direct Stream)' : 'VidFast.vc Fallback'}
             </span>
             {currentProvider !== 'vaplayer' && (
               <button

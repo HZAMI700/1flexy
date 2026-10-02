@@ -55,6 +55,12 @@ export default function RootLayout({
       <head>
         <link rel="preconnect" href="https://image.tmdb.org" />
         <link rel="preconnect" href="https://vidfast.vc" />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+        />
       </head>
       <body className="bg-black text-white min-h-screen flex flex-col selection:bg-[#E50914] selection:text-white overflow-x-hidden">
         <AdBlockerInit />

@@ -1,0 +1,167 @@
+/* =========================================================================
+   Netflix Theme for Vidstack Player (v9.0.0)
+   Signatures: Red (#E50914) progress bar, minimal dark chrome, Inter font
+   ========================================================================= */
+
+:root {
+  --media-brand: #E50914;
+  --media-focus-ring-color: #E50914;
+  --media-focus-ring: 0 0 0 3px var(--media-focus-ring-color);
+  --media-border-radius: 4px;
+  --media-font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --media-slider-height: 4px;
+  --media-slider-thumb-size: 14px;
+  --media-slider-track-height: 4px;
+  --media-slider-progress-height: 4px;
+  --media-slider-track-bg: rgba(255, 255, 255, 0.3);
+  --media-slider-track-fill-bg: #E50914;
+  --media-menu-bg: rgba(20, 20, 20, 0.96);
+  --media-menu-border-color: rgba(255, 255, 255, 0.12);
+  --media-menu-item-bg-hover: rgba(229, 9, 20, 0.18);
+  --media-tooltip-bg: rgba(20, 20, 20, 0.95);
+  --media-tooltip-color: #FFFFFF;
+}
+
+/* Base Player Container */
+.vidstack-player-root {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background-color: #000000;
+  overflow: hidden;
+  font-family: var(--media-font-family);
+}
+
+/* Control Overlays */
+.vds-controls {
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.4) 60%, transparent 100%);
+  padding: 24px 16px 16px;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.vds-controls-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+/* Interactive Buttons */
+.vds-button {
+  color: #FFFFFF;
+  opacity: 0.92;
+  transition: opacity 0.2s ease, transform 0.15s ease, color 0.2s ease;
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  outline: none;
+}
+
+.vds-button:hover {
+  opacity: 1;
+  color: #E50914;
+  transform: scale(1.08);
+}
+
+/* Sliders & Progress Bars */
+.vds-slider-track {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 2px;
+}
+
+.vds-slider-track-fill {
+  background: #E50914 !important;
+  border-radius: 2px;
+}
+
+.vds-slider-thumb {
+  background: #E50914 !important;
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.6);
+  border-radius: 50%;
+  transition: transform 0.15s ease;
+}
+
+.vds-slider-thumb:hover {
+  transform: scale(1.25);
+}
+
+.vds-time {
+  font-size: 13px;
+  color: #FFFFFF;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+.vds-time-divider {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 12px;
+  margin: 0 4px;
+}
+
+/* Dropdown & Quality Menus */
+.vds-menu-items {
+  min-width: 180px;
+  border-radius: 6px;
+  background: rgba(20, 20, 20, 0.96);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(12px);
+  overflow: hidden;
+  padding: 4px;
+}
+
+.vds-menu-item {
+  padding: 10px 14px;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  color: #FFFFFF;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.vds-menu-item:hover {
+  background: rgba(229, 9, 20, 0.2);
+  color: #FFFFFF;
+}
+
+/* Netflix Custom Top Bar */
+.netflix-player-topbar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.85) 0%, transparent 100%);
+  z-index: 20;
+  pointer-events: auto;
+  transition: opacity 0.3s ease;
+}
+
+/* Netflix Skip Intro Button */
+.netflix-skip-intro-btn {
+  position: absolute;
+  bottom: 84px;
+  right: 28px;
+  background: rgba(20, 20, 20, 0.85);
+  border: 1.5px solid #FFFFFF;
+  color: #FFFFFF;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 18px;
+  border-radius: 4px;
+  cursor: pointer;
+  z-index: 25;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(8px);
+}
+
+.netflix-skip-intro-btn:hover {
+  background: #FFFFFF;
+  color: #000000;
+  transform: scale(1.05);
+}

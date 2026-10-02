@@ -15,11 +15,14 @@ import { useAppStore } from '@/store/useAppStore';
 import { watchForOverlayInjection, killPlayerOverlays } from '@/lib/player-overlay-killer';
 import { buildPlayerEmbedUrl, getSavedProgress, StreamingProviderId } from '@/lib/vaplayer';
 import { useVaPlayerEvents } from '@/lib/vaplayer-events';
+import { VidstackPlayer } from '@/components/players/VidstackPlayer';
+import { getPosterWithFallback } from '@/lib/poster-resolver';
+import { DownloadLinkItem } from '@/services/downloadProviders';
 
 const PROVIDERS: { id: StreamingProviderId; name: string }[] = [
-  { id: 'vaplayer', name: 'VaPlayer (Primary)' },
-  { id: 'moviebox', name: 'MovieBox (Secondary)' },
-  { id: 'vidfast', name: 'VidFast (Fallback)' },
+  { id: 'vaplayer', name: 'VaPlayer (Primary Embed)' },
+  { id: 'moviebox', name: 'MovieBox (Vidstack Native)' },
+  { id: 'vidfast', name: 'VidFast (Fallback Embed)' },
 ];
 
 interface WatchPlayerProps {
@@ -38,6 +41,11 @@ export const WatchPlayer: React.FC<WatchPlayerProps> = ({
   const [episode, setEpisode] = useState(initialEpisode);
   const [copied, setCopied] = useState(false);
   const [autoNextNotice, setAutoNextNotice] = useState<number | null>(null);
+
+  // Vidstack Native Stream State & Download Links
+  const [directStreamUrl, setDirectStreamUrl] = useState<string | null>(null);
+  const [downloadLinks, setDownloadLinks] = useState<DownloadLinkItem[]>([]);
+  const [streamLoading, setStreamLoading] = useState(false);
 
   const videoWrapperRef = useRef<HTMLDivElement>(null);
   const loadTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -108,6 +116,81 @@ export const WatchPlayer: React.FC<WatchPlayerProps> = ({
       }
     };
   }, [provider, season, episode]);
+
+  // Pre-fetch download links from /api/download for Vidstack Player download button
+  useEffect(() => {
+    let isCancelled = false;
+
+    async function fetchDl() {
+      try {
+        const res = await fetch('/api/download', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            tmdb_id: media.tmdb_id || media.id,
+            imdb_id: media.imdb_id,
+            media_type: media.media_type,
+            title: media.title,
+            season,
+            episode,
+          }),
+        });
+        if (res.ok && !isCancelled) {
+          const data = await res.json();
+          if (data.links && data.links.length > 0) {
+            setDownloadLinks(data.links);
+          }
+        }
+      } catch (e) {
+        console.warn('Failed to pre-fetch download links for Vidstack in WatchPlayer:', e);
+      }
+    }
+
+    fetchDl();
+    return () => {
+      isCancelled = true;
+    };
+  }, [media, season, episode]);
+
+  // Fetch MovieBox direct stream when moviebox provider is selected
+  useEffect(() => {
+    if (provider !== 'moviebox') {
+      setDirectStreamUrl(null);
+      return;
+    }
+
+    let isCancelled = false;
+    setStreamLoading(true);
+
+    async function fetchStream() {
+      try {
+        const res = await fetch(
+          `/api/moviebox/stream?title=${encodeURIComponent(media.title)}&season=${season}&episode=${episode}`
+        );
+        if (res.ok && !isCancelled) {
+          const data = await res.json();
+          if (data.success && data.streamUrl) {
+            setDirectStreamUrl(data.streamUrl);
+            setStreamLoading(false);
+            return;
+          }
+        }
+      } catch (err) {
+        console.warn('Failed to resolve direct MovieBox stream in WatchPlayer:', err);
+      }
+
+      if (!isCancelled) {
+        console.warn('Direct stream resolution failed, switching to VidFast fallback...');
+        setProvider('vidfast');
+        setStreamLoading(false);
+      }
+    }
+
+    fetchStream();
+    return () => {
+      isCancelled = true;
+    };
+  }, [media, provider, season, episode]);
 
   const embedUrl = buildPlayerEmbedUrl({
     id: tmdbId,
@@ -229,30 +312,77 @@ export const WatchPlayer: React.FC<WatchPlayerProps> = ({
         </div>
       )}
 
-      {/* Player Frame */}
+      {/* Player Frame: Vidstack Native or Iframe Embed */}
       <div
         ref={videoWrapperRef}
         className="relative w-full aspect-video bg-black flex items-center justify-center overflow-hidden"
       >
-        <iframe
-          id="player-iframe"
-          key={`${provider}-${tmdbId}-${season}-${episode}`}
-          src={embedUrl}
-          title={media.title}
-          className="w-full h-full border-0"
-          allowFullScreen
-          allow="autoplay; encrypted-media; picture-in-picture; fullscreen; clipboard-write; accelerometer; gyroscope"
-          referrerPolicy="no-referrer"
-          loading="eager"
-          onLoad={handleIframeLoaded}
-          onError={() => {
-            if (provider === 'vaplayer') {
-              setProvider('moviebox');
-            } else if (provider === 'moviebox') {
+        {streamLoading ? (
+          <div className="flex flex-col items-center justify-center gap-3 text-[#B3B3B3]">
+            <div className="w-8 h-8 border-2 border-[#E50914] border-t-transparent rounded-full animate-spin" />
+            <p className="text-sm">Connecting to MovieBox Direct Stream (Vidstack Native)...</p>
+          </div>
+        ) : provider === 'moviebox' && directStreamUrl ? (
+          <VidstackPlayer
+            src={directStreamUrl}
+            title={media.title}
+            poster={getPosterWithFallback(media)}
+            mediaId={media.id}
+            mediaType={media.media_type}
+            season={season}
+            episode={episode}
+            downloadUrl={downloadLinks[0]?.url}
+            downloadFilename={`${media.title.replace(/[^a-zA-Z0-9_-]/g, '_')}${media.media_type === 'tv' ? `_S${season}E${episode}` : ''}.mp4`}
+            downloadLinks={downloadLinks}
+            autoPlay={true}
+            startAt={resumeSeconds}
+            onProgress={(sec) => {
+              saveProgress({
+                id: media.id,
+                mediaType: media.media_type,
+                title: media.title,
+                poster: media.poster_path,
+                backdrop: media.backdrop_path,
+                season,
+                episode,
+                currentTime: sec,
+                duration: 0,
+                progressPercent: 0,
+                lastWatched: Date.now(),
+              });
+            }}
+            onEnded={() => {
+              if (media.media_type === 'tv') {
+                setEpisode(episode + 1);
+              }
+            }}
+            onError={() => {
+              console.warn('Vidstack playback failed in WatchPlayer, switching to VidFast fallback...');
               setProvider('vidfast');
-            }
-          }}
-        />
+            }}
+            onNextEpisode={media.media_type === 'tv' ? () => setEpisode(episode + 1) : undefined}
+          />
+        ) : (
+          <iframe
+            id="player-iframe"
+            key={`${provider}-${tmdbId}-${season}-${episode}`}
+            src={embedUrl}
+            title={media.title}
+            className="w-full h-full border-0"
+            allowFullScreen
+            allow="autoplay; encrypted-media; picture-in-picture; fullscreen; clipboard-write; accelerometer; gyroscope"
+            referrerPolicy="no-referrer"
+            loading="eager"
+            onLoad={handleIframeLoaded}
+            onError={() => {
+              if (provider === 'vaplayer') {
+                setProvider('moviebox');
+              } else if (provider === 'moviebox') {
+                setProvider('vidfast');
+              }
+            }}
+          />
+        )}
       </div>
 
       {/* Footer Info */}
@@ -260,7 +390,7 @@ export const WatchPlayer: React.FC<WatchPlayerProps> = ({
         <div className="flex items-center gap-3">
           <span className="flex items-center gap-1.5 text-[11px]">
             <span className="w-2 h-2 rounded-full bg-[#E50914] animate-pulse" />
-            Server: {provider === 'vaplayer' ? 'VaPlayer Primary (No Popups)' : provider === 'moviebox' ? 'MovieBox Secondary (Stream Extractor)' : 'VidFast Fallback'}
+            Server: {provider === 'vaplayer' ? 'VaPlayer Primary (vidapi.ru)' : provider === 'moviebox' ? 'MovieBox Vidstack Native (Direct Stream)' : 'VidFast Fallback'}
           </span>
           {provider !== 'vaplayer' && (
             <button
