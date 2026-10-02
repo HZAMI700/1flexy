@@ -1,0 +1,21 @@
+{
+  "name": "VidFast Streaming Platform",
+  "short_name": "VidFast",
+  "description": "Stream movies and TV shows in 4K UHD with zero pop-up advertisements",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0a0f",
+  "theme_color": "#0a0a0f",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
