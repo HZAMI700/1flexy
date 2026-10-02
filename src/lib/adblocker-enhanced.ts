@@ -55,6 +55,7 @@ const AD_DOMAINS = [
   'mostbet',
   'clicktag',
   'adnetwork',
+  'cosedcost.com',
 ];
 
 class EnhancedAdBlockerService {

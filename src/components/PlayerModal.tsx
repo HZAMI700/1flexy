@@ -27,6 +27,7 @@ import { DownloadLinkItem } from '@/services/downloadProviders';
 const PROVIDERS: { id: StreamingProviderId; name: string; tag: string }[] = [
   { id: 'vaplayer', name: 'VaPlayer (Primary Embed)', tag: 'Clean / Fast' },
   { id: 'moviebox', name: 'MovieBox (Vidstack Native)', tag: 'Direct Stream (480p)' },
+  { id: 'nxsha', name: 'Nxsha.space (Secondary Embed)', tag: 'Fast Mirror' },
   { id: 'vidfast', name: 'VidFast (Fallback Embed)', tag: 'Mirror Server' },
 ];
 
@@ -121,7 +122,16 @@ export const PlayerModal: React.FC = () => {
       }, 8000);
     } else if (currentProvider === 'moviebox') {
       loadTimeoutRef.current = setTimeout(() => {
-        console.warn('MovieBox load timed out (>8s). Switching to VidFast fallback...');
+        console.warn('MovieBox load timed out (>8s). Switching to Nxsha secondary...');
+        setIsSwitching(true);
+        setTimeout(() => {
+          setCurrentProvider('nxsha');
+          setIsSwitching(false);
+        }, 600);
+      }, 8000);
+    } else if (currentProvider === 'nxsha') {
+      loadTimeoutRef.current = setTimeout(() => {
+        console.warn('Nxsha load timed out (>8s). Switching to VidFast fallback...');
         setIsSwitching(true);
         setTimeout(() => {
           setCurrentProvider('vidfast');
@@ -205,9 +215,9 @@ export const PlayerModal: React.FC = () => {
       }
 
       if (!isCancelled) {
-        // Fallback to VidFast iframe if direct stream resolution fails
-        console.warn('Direct stream resolution failed, switching to VidFast fallback...');
-        setCurrentProvider('vidfast');
+        // Fallback to Nxsha iframe if direct stream resolution fails
+        console.warn('Direct stream resolution failed, switching to Nxsha secondary...');
+        setCurrentProvider('nxsha');
         setStreamLoading(false);
       }
     }

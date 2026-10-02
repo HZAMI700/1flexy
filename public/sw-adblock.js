@@ -42,6 +42,7 @@ const AD_DOMAINS = [
   'adnxs',
   'clicktag',
   'adsystem',
+  'cosedcost',
 ];
 
 self.addEventListener('install', (event) => {

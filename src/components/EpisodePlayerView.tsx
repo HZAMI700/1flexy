@@ -24,6 +24,7 @@ import { DownloadLinkItem } from '@/services/downloadProviders';
 const PROVIDERS: { id: StreamingProviderId; name: string }[] = [
   { id: 'vaplayer', name: 'VaPlayer (Primary Embed)' },
   { id: 'moviebox', name: 'MovieBox (Vidstack Native)' },
+  { id: 'nxsha', name: 'Nxsha.space (Secondary Embed)' },
   { id: 'vidfast', name: 'VidFast (Fallback Embed)' },
 ];
 
@@ -98,7 +99,12 @@ export const EpisodePlayerView: React.FC<EpisodePlayerViewProps> = ({
       }, 8000);
     } else if (provider === 'moviebox') {
       loadTimeoutRef.current = setTimeout(() => {
-        console.warn('MovieBox watchdog: switching to VidFast fallback');
+        console.warn('MovieBox watchdog: switching to Nxsha secondary');
+        setProvider('nxsha');
+      }, 8000);
+    } else if (provider === 'nxsha') {
+      loadTimeoutRef.current = setTimeout(() => {
+        console.warn('Nxsha watchdog: switching to VidFast fallback');
         setProvider('vidfast');
       }, 8000);
     }
@@ -172,8 +178,8 @@ export const EpisodePlayerView: React.FC<EpisodePlayerViewProps> = ({
       }
 
       if (!isCancelled) {
-        console.warn('Direct stream resolution failed, switching to VidFast fallback...');
-        setProvider('vidfast');
+        console.warn('Direct stream resolution failed, switching to Nxsha secondary...');
+        setProvider('nxsha');
         setStreamLoading(false);
       }
     }

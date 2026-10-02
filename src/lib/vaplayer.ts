@@ -7,7 +7,7 @@
  * 3. VidFast (Fallback — https://vidfast.vc)
  */
 
-export type StreamingProviderId = 'vaplayer' | 'moviebox' | 'vidfast';
+export type StreamingProviderId = 'vaplayer' | 'moviebox' | 'nxsha' | 'vidfast';
 
 export interface PlayerUrlOptions {
   id: string | number;
@@ -88,6 +88,14 @@ export function buildPlayerEmbedUrl(opts: PlayerUrlOptions): string {
     // Moviebox Secondary Provider
     const cleanTitle = encodeURIComponent(title);
     return `https://vidsrc.stream/embed/${mediaType === 'tv' ? 'tv' : 'movie'}/${targetId}${mediaType === 'tv' ? `/${season}/${episode}` : ''}?source=moviebox&title=${cleanTitle}`;
+  }
+
+  if (provider === 'nxsha') {
+    // Nxsha Secondary Embed Provider (v10.0.0)
+    if (mediaType === 'movie') {
+      return `https://nxsha.space/embed/movie/${targetId}`;
+    }
+    return `https://nxsha.space/embed/tv/${targetId}/${season}/${episode}`;
   }
 
   // VidFast Fallback Provider

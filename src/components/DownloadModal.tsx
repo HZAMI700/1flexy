@@ -33,11 +33,17 @@ const PROVIDER_NAMES = [
   'MLWBD Direct CDN',
   'VidSrc Direct Stream Scraper',
   'LestResolver Direct Engine',
-  'MovieBox Direct API',
   'Nullbr Direct Video SDK',
   'FaselHD Direct High-Speed API',
   'ISAIDUB Direct Engine',
   'Cineru Drive Link Engine',
+  'Nxsha Stream URL Extractor',
+  'VidSrc.to Scraper',
+  '2Embed Scraper',
+  'SuperEmbed Scraper',
+  'VidSrc.cc Scraper',
+  'AutoEmbed Scraper',
+  'MovieBox Direct API',
 ];
 
 export const DownloadModal: React.FC = () => {
