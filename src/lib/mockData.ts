@@ -451,6 +451,40 @@ export const MOCK_POPULAR_TV: MediaItem[] = [
       },
     ],
   },
+  {
+    id: 63174,
+    tmdb_id: 63174,
+    imdb_id: 'tt4052886',
+    title: 'Lucifer',
+    overview:
+      'Bored and unhappy as the Lord of Hell, Lucifer Morningstar abandoned his throne and retired to Los Angeles, where he has teamed up with LAPD detective Chloe Decker to take down criminals.',
+    poster_path: 'https://image.tmdb.org/t/p/w500/ekZobS2isE6mA53RAiGDG93hBxL.jpg',
+    backdrop_path: 'https://image.tmdb.org/t/p/original/ta5oblHGzbSbtmNZw21B5D34t8W.jpg',
+    vote_average: 8.5,
+    vote_count: 14500,
+    first_air_date: '2016-01-25',
+    media_type: 'tv',
+    number_of_seasons: 6,
+    number_of_episodes: 93,
+    tagline: 'It\'s good to be bad.',
+    genres: [
+      { id: 80, name: 'Crime' },
+      { id: 10765, name: 'Sci-Fi & Fantasy' },
+      { id: 18, name: 'Drama' },
+    ],
+    seasons: [
+      {
+        id: 69829,
+        season_number: 1,
+        name: 'Season 1',
+        episode_count: 13,
+        episodes: [
+          { id: 1144081, episode_number: 1, season_number: 1, name: 'Pilot', overview: 'Upon leaving hell, Lucifer Morningstar opens a nightclub in Los Angeles. When a pop star is brutally murdered, he decides to help LAPD detective Chloe Decker find the killer.', still_path: 'https://image.tmdb.org/t/p/w500/ta5oblHGzbSbtmNZw21B5D34t8W.jpg', runtime: 44 },
+          { id: 1144082, episode_number: 2, season_number: 1, name: 'Lucifer, Stay. Good Devil.', overview: 'When a movie star\'s son is killed by paparazzi, Lucifer and Chloe look into the case and investigate the photographer.', still_path: 'https://image.tmdb.org/t/p/w500/ekZobS2isE6mA53RAiGDG93hBxL.jpg', runtime: 44 },
+        ],
+      },
+    ],
+  },
 ];
 
 export const ALL_MEDIA_ITEMS: MediaItem[] = [

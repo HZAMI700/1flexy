@@ -14,6 +14,9 @@ import {
   ExternalLink,
   Loader2,
   ShieldCheck,
+  Server,
+  FileText,
+  RotateCcw,
 } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import { FaselHd } from '@/services/faselhd';
@@ -25,35 +28,37 @@ export const DownloadModal: React.FC = () => {
 
   const [loading, setLoading] = useState(true);
   const [links, setLinks] = useState<DownloadLink[]>([]);
+  const [providerName, setProviderName] = useState<string>('FaselHD API');
+  const [selectedQuality, setSelectedQuality] = useState<string>('All');
+  const [includeSubtitles, setIncludeSubtitles] = useState(true);
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
 
-  useEffect(() => {
-    let isMounted = true;
+  const fetchLinks = () => {
+    if (!isOpen || !media) return;
+    setLoading(true);
 
-    if (isOpen && media) {
-      setLoading(true);
-      FaselHd.getDownloadLinks({
-        tmdbId: media.tmdb_id || media.id,
-        type: media.media_type,
-        season,
-        episode,
-        title: media.title,
+    FaselHd.getDownloadResult({
+      tmdbId: media.tmdb_id || media.id,
+      type: media.media_type,
+      season,
+      episode,
+      title: media.title,
+    })
+      .then((res) => {
+        setProviderName(res.providerName);
+        setLinks(res.links);
+        setLoading(false);
       })
-        .then((data) => {
-          if (isMounted) {
-            setLinks(data);
-            setLoading(false);
-          }
-        })
-        .catch((err) => {
-          console.error('Failed to load Fasel HD links:', err);
-          if (isMounted) setLoading(false);
-        });
-    }
+      .catch((err) => {
+        console.error('Failed to load download links:', err);
+        setLoading(false);
+      });
+  };
 
-    return () => {
-      isMounted = false;
-    };
+  useEffect(() => {
+    if (isOpen && media) {
+      fetchLinks();
+    }
   }, [isOpen, media, season, episode]);
 
   if (!isOpen || !media) return null;
@@ -63,6 +68,11 @@ export const DownloadModal: React.FC = () => {
     setCopiedIndex(index);
     setTimeout(() => setCopiedIndex(null), 2500);
   };
+
+  const filteredLinks =
+    selectedQuality === 'All'
+      ? links
+      : links.filter((l) => l.quality.toLowerCase().includes(selectedQuality.toLowerCase()));
 
   return (
     <div
@@ -80,11 +90,19 @@ export const DownloadModal: React.FC = () => {
               <Download className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="font-bold text-white text-base font-display">
-                Fasel HD High-Speed Downloader
-              </h3>
+              <div className="flex items-center gap-2">
+                <h3 className="font-bold text-white text-base font-display">
+                  Download Manager
+                </h3>
+                {/* Active Provider Badge */}
+                {!loading && links.length > 0 && (
+                  <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-primary/20 text-accent border border-primary/40 flex items-center gap-1">
+                    <Server className="w-3 h-3" /> {providerName}
+                  </span>
+                )}
+              </div>
               <p className="text-xs text-text-muted">
-                Direct CDN mirrors with multi-stream resume support
+                Multi-provider direct download engine with automated fallback
               </p>
             </div>
           </div>
@@ -98,58 +116,97 @@ export const DownloadModal: React.FC = () => {
         </div>
 
         {/* Media Preview Card */}
-        <div className="px-6 py-4 bg-surface/50 border-b border-surface-border flex items-center gap-4">
-          <div className="relative w-16 h-24 rounded-lg overflow-hidden flex-shrink-0 bg-surface-dark border border-surface-border">
-            {media.poster_path ? (
-              <Image
-                src={media.poster_path}
-                alt={media.title}
-                fill
-                className="object-cover"
-              />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center text-xs text-text-muted">
-                No poster
-              </div>
-            )}
-          </div>
-          <div className="space-y-1">
-            <h4 className="font-bold text-white text-sm line-clamp-1">
-              {media.title}
-            </h4>
-            <div className="flex items-center gap-2 text-xs text-text-muted">
-              <span className="capitalize">{media.media_type}</span>
-              {season && episode && (
-                <span className="text-accent font-semibold">
-                  Season {season} • Episode {episode}
-                </span>
+        <div className="px-6 py-3.5 bg-surface/50 border-b border-surface-border flex items-center justify-between gap-4 flex-wrap">
+          <div className="flex items-center gap-3">
+            <div className="relative w-12 h-16 rounded-md overflow-hidden flex-shrink-0 bg-surface-dark border border-surface-border">
+              {media.poster_path ? (
+                <Image
+                  src={media.poster_path}
+                  alt={media.title}
+                  fill
+                  className="object-cover"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-[10px] text-text-muted">
+                  N/A
+                </div>
               )}
-              <span>•</span>
-              <span className="text-primary flex items-center gap-1">
-                <ShieldCheck className="w-3.5 h-3.5" /> Ad-Free Direct
-              </span>
             </div>
-            <p className="text-[11px] text-text-secondary line-clamp-1">
-              Powered by FaselHD Enterprise Network & High-speed Akamai Edge
-            </p>
+            <div className="space-y-0.5">
+              <h4 className="font-bold text-white text-sm line-clamp-1">
+                {media.title}
+              </h4>
+              <div className="flex items-center gap-2 text-xs text-text-muted">
+                <span className="capitalize">{media.media_type}</span>
+                {season && episode && (
+                  <span className="text-accent font-semibold">
+                    • S{season} : E{episode}
+                  </span>
+                )}
+                <span>•</span>
+                <span className="text-primary flex items-center gap-1 text-[11px]">
+                  <ShieldCheck className="w-3 h-3" /> Clean Mirror
+                </span>
+              </div>
+            </div>
           </div>
+
+          {/* Subtitles Toggle */}
+          <label className="flex items-center gap-2 text-xs text-text-secondary cursor-pointer select-none bg-surface-dark px-3 py-1.5 rounded-lg border border-surface-border hover:border-primary/50">
+            <input
+              type="checkbox"
+              checked={includeSubtitles}
+              onChange={(e) => setIncludeSubtitles(e.target.checked)}
+              className="accent-primary rounded cursor-pointer"
+            />
+            <span className="flex items-center gap-1 font-medium">
+              <FileText className="w-3.5 h-3.5 text-accent" />
+              With Subtitles (SRT/VTT)
+            </span>
+          </label>
+        </div>
+
+        {/* Quality Tabs */}
+        <div className="px-6 py-2 bg-surface/30 border-b border-surface-border flex items-center gap-1.5 overflow-x-auto">
+          {['All', '4K', '1080p', '720p', '480p'].map((q) => (
+            <button
+              key={q}
+              onClick={() => setSelectedQuality(q)}
+              className={`px-3 py-1 rounded-md text-xs font-semibold transition-all ${
+                selectedQuality === q
+                  ? 'bg-primary text-white shadow-glow'
+                  : 'bg-surface text-text-muted hover:text-white border border-surface-border'
+              }`}
+            >
+              {q === 'All' ? 'All Qualities' : q}
+            </button>
+          ))}
         </div>
 
         {/* Links List */}
         <div className="p-6 overflow-y-auto space-y-3">
           {loading ? (
-            <div className="py-12 flex flex-col items-center justify-center gap-3 text-text-muted">
+            <div className="py-14 flex flex-col items-center justify-center gap-3 text-text-muted">
               <Loader2 className="w-8 h-8 text-primary animate-spin" />
               <p className="text-sm font-medium">
-                Resolving fastest Fasel HD mirror servers...
+                Querying download providers (FaselHD → EgyBest → ArabSeed → MovieBox)...
               </p>
             </div>
-          ) : links.length === 0 ? (
-            <div className="py-8 text-center text-text-muted text-sm">
-              No download mirrors found at this moment. Please check back shortly.
+          ) : filteredLinks.length === 0 ? (
+            <div className="py-12 text-center space-y-3">
+              <p className="text-text-muted text-sm">
+                No matching download links found for the selected quality filter.
+              </p>
+              <button
+                onClick={fetchLinks}
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary text-white text-xs font-bold shadow-glow"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                Retry Providers
+              </button>
             </div>
           ) : (
-            links.map((link, idx) => (
+            filteredLinks.map((link, idx) => (
               <div
                 key={idx}
                 className="bg-surface hover:bg-surface-light border border-surface-border rounded-xl p-4 transition-all duration-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
@@ -159,9 +216,9 @@ export const DownloadModal: React.FC = () => {
                   <div className="flex items-center gap-2">
                     <span
                       className={`px-2 py-0.5 rounded text-xs font-black tracking-wide ${
-                        link.quality === '4K UHD'
+                        link.quality.includes('4K')
                           ? 'bg-purple-600 text-white'
-                          : link.quality === '1080p'
+                          : link.quality.includes('1080p')
                           ? 'bg-primary text-white'
                           : 'bg-surface-light text-text-secondary border border-surface-border'
                       }`}
@@ -171,6 +228,11 @@ export const DownloadModal: React.FC = () => {
                     <span className="text-xs font-semibold text-white">
                       {link.format}
                     </span>
+                    {includeSubtitles && (
+                      <span className="px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 text-[10px] font-bold border border-amber-500/30">
+                        +Subs
+                      </span>
+                    )}
                   </div>
                   <div className="flex items-center gap-3 text-xs text-text-muted">
                     <span className="flex items-center gap-1 font-mono text-text-secondary">
@@ -181,6 +243,10 @@ export const DownloadModal: React.FC = () => {
                     <span className="flex items-center gap-1 text-[11px] text-accent">
                       <Gauge className="w-3.5 h-3.5" />
                       {link.speed}
+                    </span>
+                    <span>•</span>
+                    <span className="text-[11px] text-text-muted truncate max-w-[150px]">
+                      {link.server}
                     </span>
                   </div>
                 </div>
@@ -219,8 +285,10 @@ export const DownloadModal: React.FC = () => {
 
         {/* Footer Note */}
         <div className="px-6 py-3 bg-surface border-t border-surface-border text-xs text-text-muted flex items-center justify-between">
-          <span>Speed capped at 1 Gbps per IP</span>
-          <span className="text-primary font-medium">SSL Encrypted</span>
+          <div className="flex items-center gap-1.5 text-accent text-[11px]">
+            <span>Fallback order: FaselHD → EgyBest → ArabSeed → MovieBox → VibraVid → vidsrc → Torrent → Nullbr</span>
+          </div>
+          <span className="text-primary font-medium text-[11px]">Resumable SSL</span>
         </div>
       </div>
     </div>

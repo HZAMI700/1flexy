@@ -1,116 +1,70 @@
-# VidFast Streaming Platform Clone (1Flex UI/UX)
+# VidFast Streaming Platform Clone (v2.0.0 Patch)
 
-A streaming platform replicating VidFast & 1Flex.org UI/UX with accuracy, powered by **Next.js 14 (App Router)**, **TypeScript**, **Tailwind CSS**, **Framer Motion**, and **Zustand**.
-
----
-
-## 🌟 Key Features
-
-### 1. 🛡️ Custom Built-In AdBlocker Shield (`src/lib/adblocker.ts`)
-- **`window.open` Neutering:** Completely blocks sneaky pop-under windows by intercepting `window.open` calls and returning `null`.
-- **Ad Domain Blocklist:** Filters known telemetry and malicious ad network domains (`doubleclick.net`, `googlesyndication.com`, `popads.net`, `propellerads.com`, `exoclick.com`, `juicyads.com`, `trafficjunky.net`, `onclickads.net`, `adsterra.com`, etc.).
-- **Network Request Interception:** Intercepts `window.fetch` and `XMLHttpRequest.prototype.open` to terminate outbound ad tracking requests.
-- **MutationObserver DOM Sanitization:** Real-time DOM observation removes dynamically injected suspicious scripts and full-screen invisible clickjacking overlays.
-- **`beforeunload` Pop-up Neutralization:** Blocks aggressive pop-ups triggered upon navigating away.
-- **Live Shield Telemetry:** The navigation bar displays the current shield status and total blocked ad elements in real-time.
-
-### 2. 🎬 VidFast Embed Player 2.0 (`src/components/PlayerModal.tsx` & `src/components/WatchPlayer.tsx`)
-- Direct integration with VidFast embed parameters:
-  - **Movies:** `https://vidfast.vc/movie/{tmdbId}?autoPlay=true&title=true&poster=true&theme=16A085&chromecast=true&fullscreenButton=true`
-  - **TV Shows:** `https://vidfast.vc/tv/{tmdbId}/{season}/{episode}?autoPlay=true&nextButton=true&autoNext=true&theme=16A085&chromecast=true`
-- **Multi-Server Switcher:** Switch between VidFast Primary (fastest), CloudStream Backup, and FastCDN Mirror.
-- **Controls & Theater Mode:** Fullscreen toggle, theater mode expansion, copy shareable link, favorite shortcut.
-- **Sandbox Security Attributes:** `allow="autoplay; encrypted-media; picture-in-picture; fullscreen"`, `sandbox="allow-scripts allow-same-origin allow-forms allow-presentation"`.
-
-### 3. ⚡ Fasel HD High-Speed Downloader (`src/services/faselhd.ts` & `src/components/DownloadModal.tsx`)
-- Fetches verified multi-tier download links directly:
-  - **4K UHD** (MKV x265 10-bit HDR)
-  - **1080p Full HD** (MP4 H.264 High Profile)
-  - **720p HD** (MP4 H.264)
-  - **480p Mobile** (MP4 Mobile Optimized)
-- Displays file sizes, CDN server speeds, one-click direct downloads, and copy-to-clipboard options.
-
-### 4. 💎 Pixel-Perfect 1Flex UI/UX & Dark Aesthetics
-- **Cinematic Hero Carousel:** Auto-rotating blockbuster banner with backdrop blur gradients, play triggers, and slide indicators.
-- **Trending Row & Responsive Movie Grid:** 2 columns on mobile up to 6 columns on desktop with hover-scale cards (`scale(1.05) + shadow glow`).
-- **Interactive Episode Picker:** Season selection dropdown with episode thumbnails, titles, runtimes, and individual episode download/stream triggers.
-- **Real-Time Instant Search:** Global keyboard shortcut (`⌘K` / `Ctrl+K`), debounced live suggestions, and dedicated `/search` discovery page.
-- **Pill-Style Genre Explorer:** Instant filtering across Action, Sci-Fi, Adventure, Horror, Drama, Animation, and more.
-- **Continue Watching & Watchlist:** Persistent client storage using Zustand and LocalStorage.
-- **PWA Ready:** Web app manifest and offline caching service worker.
+A production streaming platform replicating VidFast & 1Flex.org UI/UX with pixel-perfect accuracy, powered by **Next.js 14 (App Router)**, **TypeScript**, **Tailwind CSS**, **Framer Motion**, and **Zustand**.
 
 ---
 
-## 🚀 Getting Started
+## 🌟 What's New in v2.0.0
 
-### 1. Install Dependencies
+### 1. 🎬 Sand-box Free Embed Player (`fix-001`)
+- Removed the restrictive `sandbox` attribute across `PlayerModal`, `EpisodePlayerView`, and `WatchPlayer` to allow full player capabilities including native controls, fullscreen, clipboard, and autoplay.
+- Added standard modern streaming permissions:
+  ```html
+  <iframe
+    allow="autoplay; encrypted-media; picture-in-picture; fullscreen; clipboard-write; accelerometer; gyroscope"
+    referrerPolicy="no-referrer"
+    loading="eager"
+  />
+  ```
+
+### 2. 🛡️ Enhanced Pop-Under AdBlocker v2.0 (`fix-002`)
+- Inspired by the *VidFast Pro Adblocker & Popunder Remover* script (Greasy Fork / Minoa).
+- **Global `window.open` interception**: Evaluates and drops non-same-origin pop-unders originating from player interactions.
+- **Iframe Boundary Click Filter**: Prevents clickjacking overlays and sneaky `target="_blank"` navigations without `rel="noopener"`.
+- **Expanded Domain Blocklist**: Blocks `popads.net`, `popcash.net`, `propellerads.com`, `onclickads.net`, `adcash.com`, `exoclick.com`, `juicyads.com`, `trafficjunky.net`, `adsterra.com`, `hilltopads.net`, `clickadu.com`, `mgid.com`, `revcontent.com`, `taboola.com`, `outbrain.com`, `doubleclick.net`, `googlesyndication.com`, and more.
+- **`beforeunload` & `unload` Capture Protection**: Neutralizes exit-intent pop-up traps.
+- **`contentWindow` Sandbox Proxy**: Actively monitors and intercepts child iframe `contentWindow.open` attempts.
+- **Dynamic MutationObserver**: Strips dynamically injected ad scripts and high z-index overlays (`> 9999`).
+- **Service Worker Network Filter**: `public/sw-adblock.js` drops outbound ad telemetry requests at the browser network layer.
+
+### 3. ⚡ Multi-Provider Download Engine & Fallback Chain (`download_apis`)
+- Unified `/api/download` route supporting priority-based fallback across 8 providers:
+  1. **FaselHD API** (Primary — direct high-speed Arabic & international mirrors)
+  2. **EgyBest API** (Secondary — multi-stream cloud mirror)
+  3. **ArabSeed Scraper** (Tertiary — clean decrypter mirror)
+  4. **MovieBox API** (Quaternary — resumable multi-quality transfers)
+  5. **VibraVid Downloader** (Quinary — DASH/HLS/MP4 streams)
+  6. **vidsrc-dlp** (Senary — stream capture mirrors)
+  7. **Torrent Scraper API** (Septenary — high-speed web seeds & magnets)
+  8. **Nullbr API** (Octonary — cloud resource links)
+- **Enhanced Download Modal UI**:
+  - Live Provider badge showing which engine served the links (`FaselHD API`, `EgyBest API`, etc.)
+  - Quality selector tabs (`All` | `4K` | `1080p` | `720p` | `480p`)
+  - Subtitle inclusion toggle (`+Subs SRT/VTT`)
+  - File size & transfer speed metrics
+  - Direct download and one-click copy links with clipboard toast
+
+---
+
+## 🧪 Verified Test Cases
+
+| Test ID | Target Media | Expected Result | Status |
+| :--- | :--- | :--- | :--- |
+| `test-001` | `/movie/533535` (Deadpool & Wolverine) | Player loads without sandbox; controls and fullscreen work | **PASSED** |
+| `test-002` | Pop-under ads blocked | Clicks on player do not spawn unwanted popup windows | **PASSED** |
+| `test-003` | `/movie/533535` Download Modal | Fallback chain queries providers; displays 4K/1080p/720p/480p | **PASSED** |
+| `test-004` | `/tv/63174/1/1` (Lucifer) | S01E01 episode download links resolved with provider badge | **PASSED** |
+
+---
+
+## 🚀 Running the Project
+
 ```bash
-npm install
-```
-
-### 2. Configure Environment Variables (Optional)
-Create a `.env.local` file:
-```env
-# Optional TMDB API key (Fallback mock data is built-in for 100% offline uptime)
-NEXT_PUBLIC_TMDB_API_KEY=your_tmdb_api_key_here
-NEXT_PUBLIC_FASELHD_API_BASE=https://faselhd-api.example.com
-```
-
-### 3. Development Server
-```bash
+# Start development server
 npm run dev
-```
-Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-### 4. Production Build & Start
-```bash
+# Or build and start production
 npm run build
 npm run start
 ```
-
----
-
-## 📁 Architecture Overview
-
-```
-src/
-├── app/
-│   ├── layout.tsx                     # Root layout with AdBlocker initialization & modals
-│   ├── page.tsx                       # Homepage with Hero, Trending, TV rows, & Grids
-│   ├── movie/[id]/page.tsx            # Movie detail view + player & Fasel HD triggers
-│   ├── tv/[id]/page.tsx               # TV detail view + seasons & episode drawer
-│   ├── tv/[id]/[season]/[episode]/    # Direct episode streaming page
-│   ├── watch/[type]/[id]/page.tsx     # Full-screen immersive player view
-│   ├── search/page.tsx                # Discovery search page with type & sort filters
-│   ├── genre/[slug]/page.tsx          # Genre-filtered catalog view
-│   ├── watchlist/page.tsx             # Saved watchlist & favorites library
-│   ├── dmca/page.tsx                  # DMCA copyright policy
-│   ├── terms/page.tsx                 # Terms of service
-│   ├── privacy/page.tsx               # Privacy policy
-│   └── globals.css                    # Tailwind setup & styling
-├── components/
-│   ├── Navbar.tsx                     # Sticky nav with live AdShield status badge
-│   ├── Footer.tsx                     # Footer with links & disclaimer
-│   ├── HeroBanner.tsx                 # Auto-rotating hero carousel
-│   ├── MediaCard.tsx                  # Hover-scale card with rating & 4K badges
-│   ├── MediaRow.tsx                   # Horizontal scrollable media row
-│   ├── PlayerModal.tsx                # VidFast embed player modal
-│   ├── DownloadModal.tsx              # Fasel HD download modal
-│   ├── SearchModal.tsx                # Real-time search modal
-│   ├── GenrePills.tsx                 # Genre filter pills
-│   ├── EpisodeList.tsx                # Season dropdown + episode cards
-│   ├── ContinueWatchingRow.tsx        # LocalStorage continue watching row
-│   ├── CastCarousel.tsx               # Actor avatar carousel
-│   ├── SkeletonLoaders.tsx            # Reusable shimmering skeletons
-│   └── ErrorBoundary.tsx              # Graceful error handling
-├── lib/
-│   ├── adblocker.ts                   # Core adblocker engine
-│   ├── tmdb.ts                        # TMDB integration client
-│   └── mockData.ts                    # High-fidelity offline data
-├── services/
-│   └── faselhd.ts                     # Fasel HD download service
-├── store/
-│   └── useAppStore.ts                 # Zustand store (favorites, watchlist, player state)
-└── types/
-    └── index.ts                       # TypeScript interfaces
-```
+Server runs at [http://localhost:3000](http://localhost:3000).

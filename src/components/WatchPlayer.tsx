@@ -167,8 +167,9 @@ export const WatchPlayer: React.FC<WatchPlayerProps> = ({
           title={media.title}
           className="w-full h-full border-0"
           allowFullScreen
-          allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
-          sandbox="allow-scripts allow-same-origin allow-forms allow-presentation"
+          allow="autoplay; encrypted-media; picture-in-picture; fullscreen; clipboard-write; accelerometer; gyroscope"
+          referrerPolicy="no-referrer"
+          loading="eager"
         />
       </div>
 

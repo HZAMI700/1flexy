@@ -1,4 +1,5 @@
 import { DownloadLink, MediaType } from '@/types';
+import { resolveDownloadWithFallback, DownloadProviderResult } from './downloadProviders';
 
 export interface FaselHdRequestParams {
   tmdbId: string | number;
@@ -9,71 +10,52 @@ export interface FaselHdRequestParams {
 }
 
 class FaselHdService {
-  private apiBase: string;
+  /**
+   * Fetch download result using priority-based fallback across all providers:
+   * 1. FaselHD API
+   * 2. EgyBest API
+   * 3. ArabSeed Scraper
+   * 4. MovieBox API
+   * 5. VibraVid
+   * 6. vidsrc-dlp
+   * 7. Torrent Scraper API
+   * 8. Nullbr API
+   */
+  public async getDownloadResult(params: FaselHdRequestParams): Promise<DownloadProviderResult> {
+    try {
+      // In browser, call the /api/download route if available, or fall back to internal resolver
+      if (typeof window !== 'undefined') {
+        const query = new URLSearchParams({
+          tmdbId: params.tmdbId.toString(),
+          type: params.type,
+          title: params.title || 'media',
+        });
+        if (params.season) query.append('season', params.season.toString());
+        if (params.episode) query.append('episode', params.episode.toString());
 
-  constructor() {
-    this.apiBase = process.env.NEXT_PUBLIC_FASELHD_API_BASE || 'https://faselhd-api.example.com';
+        const res = await fetch(`/api/download?${query.toString()}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.links && data.links.length > 0) {
+            return {
+              providerName: data.provider || 'FaselHD API',
+              providerType: data.providerType || 'primary',
+              hasSubtitles: data.hasSubtitles !== false,
+              links: data.links,
+            };
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('API route call fallback:', e);
+    }
+
+    return resolveDownloadWithFallback(params);
   }
 
-  /**
-   * Fetch download links from Fasel HD API or generate reliable fast CDN mirror links
-   */
-  public async getDownloadLinks({
-    tmdbId,
-    type,
-    season,
-    episode,
-    title = 'media',
-  }: FaselHdRequestParams): Promise<DownloadLink[]> {
-    // Artificial small delay to simulate network handshake and link resolution
-    await new Promise((resolve) => setTimeout(resolve, 800));
-
-    const cleanTitle = title
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '.')
-      .replace(/^\.|\.$/g, '');
-
-    const episodeSuffix =
-      type === 'tv' && season && episode
-        ? `.S${String(season).padStart(2, '0')}E${String(episode).padStart(2, '0')}`
-        : '';
-
-    const baseFileName = `${cleanTitle}${episodeSuffix}`;
-
-    return [
-      {
-        quality: '4K UHD',
-        size: type === 'tv' ? '3.8 GB' : '7.4 GB',
-        format: 'MKV (x265 10-bit HDR)',
-        server: 'FaselHD Ultra CDN 01 (Max Speed)',
-        speed: '120 MB/s',
-        url: `https://download.faselhd.live/dl/4k/${tmdbId}/${baseFileName}.2160p.HDR.mkv?token=fhd_${tmdbId}_4k`,
-      },
-      {
-        quality: '1080p',
-        size: type === 'tv' ? '1.4 GB' : '2.6 GB',
-        format: 'MP4 (H.264 High Profile)',
-        server: 'FaselHD Direct High-Speed 02',
-        speed: '85 MB/s',
-        url: `https://download.faselhd.live/dl/1080p/${tmdbId}/${baseFileName}.1080p.Web-DL.mp4?token=fhd_${tmdbId}_1080p`,
-      },
-      {
-        quality: '720p',
-        size: type === 'tv' ? '750 MB' : '1.2 GB',
-        format: 'MP4 (H.264)',
-        server: 'FaselHD Standard Fast CDN 03',
-        speed: '50 MB/s',
-        url: `https://download.faselhd.live/dl/720p/${tmdbId}/${baseFileName}.720p.HD.mp4?token=fhd_${tmdbId}_720p`,
-      },
-      {
-        quality: '480p',
-        size: type === 'tv' ? '320 MB' : '650 MB',
-        format: 'MP4 (Mobile Optimized)',
-        server: 'FaselHD Mobile Lite CDN 04',
-        speed: '30 MB/s',
-        url: `https://download.faselhd.live/dl/480p/${tmdbId}/${baseFileName}.480p.Mobile.mp4?token=fhd_${tmdbId}_480p`,
-      },
-    ];
+  public async getDownloadLinks(params: FaselHdRequestParams): Promise<DownloadLink[]> {
+    const res = await this.getDownloadResult(params);
+    return res.links;
   }
 }
 
