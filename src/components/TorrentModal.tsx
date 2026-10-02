@@ -49,6 +49,8 @@ export const TorrentModal: React.FC = () => {
     'initializing' | 'loading_metadata' | 'ready' | 'downloading' | 'completed' | 'streaming' | 'error'
   >('initializing');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [loadingStep, setLoadingStep] = useState<string>('Initializing WebTorrent engine...');
+  const [retryKey, setRetryKey] = useState<number>(0);
 
   // Torrent Data
   const [torrentInstance, setTorrentInstance] = useState<any>(null);
@@ -115,7 +117,13 @@ export const TorrentModal: React.FC = () => {
 
   // Main lifecycle: Load Torrent on Open
   useEffect(() => {
-    if (!isOpen || !torrentUrl) {
+    if (!isOpen) {
+      return;
+    }
+
+    if (!torrentUrl || typeof torrentUrl !== 'string' || !torrentUrl.trim()) {
+      setPhase('error');
+      setErrorMessage('No torrent file or magnet link was configured for this title.');
       return;
     }
 
@@ -132,6 +140,7 @@ export const TorrentModal: React.FC = () => {
       }
 
       setPhase('loading_metadata');
+      setLoadingStep('Step 1/3: Initializing in-browser WebTorrent WebRTC engine...');
       setErrorMessage(null);
       setProgressData(null);
       setCompletedBlobUrl(null);
@@ -141,13 +150,20 @@ export const TorrentModal: React.FC = () => {
 
       try {
         console.log(`[TorrentModal] Loading torrent from: ${torrentUrl}`);
-        const torrent = await loadTorrent(torrentUrl, { timeoutMs: 35000 });
+        setLoadingStep(
+          torrentUrl.startsWith('/')
+            ? 'Step 2/3: Reading local .torrent metadata package...'
+            : 'Step 2/3: Connecting to WebRTC trackers swarm...'
+        );
+
+        const torrent = await loadTorrent(torrentUrl, { timeoutMs: 25000 });
 
         if (isCancelled) {
           cancelTorrent(torrent);
           return;
         }
 
+        setLoadingStep('Step 3/3: Selecting media file (.mp4 / .mkv)...');
         setTorrentInstance(torrent);
 
         // 2. Read all files inside the torrent
@@ -188,7 +204,7 @@ export const TorrentModal: React.FC = () => {
     return () => {
       isCancelled = true;
     };
-  }, [isOpen, torrentUrl]);
+  }, [isOpen, torrentUrl, retryKey]);
 
   // Start Downloading File
   const startDownloading = (torrent: any, target: TorrentFileInfo) => {
@@ -375,12 +391,22 @@ export const TorrentModal: React.FC = () => {
             {(phase === 'loading_metadata' || phase === 'initializing') && (
               <div className="py-12 flex flex-col items-center justify-center text-center space-y-4">
                 <div className="w-14 h-14 rounded-full border-4 border-[#333] border-t-[#E50914] animate-spin flex items-center justify-center" />
-                <div className="space-y-1">
-                  <h4 className="text-base font-medium text-white">Reading Torrent Metadata...</h4>
-                  <p className="text-xs text-[#8E8E93] max-w-sm">
-                    Connecting to WebTorrent WebRTC swarm to parse media files and index pieces directly in your
-                    browser.
+                <div className="space-y-1.5 max-w-sm">
+                  <h4 className="text-base font-semibold text-white">Reading Torrent Metadata...</h4>
+                  <p className="text-xs text-[#E50914] font-medium font-mono animate-pulse">
+                    {loadingStep}
                   </p>
+                  <p className="text-[11px] text-[#8E8E93]">
+                    Connecting directly in browser memory without intermediate proxy servers.
+                  </p>
+                </div>
+                <div className="pt-2">
+                  <button
+                    onClick={handleClose}
+                    className="px-4 py-1.5 rounded-lg bg-[#242424] hover:bg-[#333] text-xs text-[#B3B3B3] hover:text-white transition-colors"
+                  >
+                    Cancel
+                  </button>
                 </div>
               </div>
             )}
@@ -396,8 +422,7 @@ export const TorrentModal: React.FC = () => {
                 <div className="pt-2 flex items-center gap-3">
                   <button
                     onClick={() => {
-                      setPhase('loading_metadata');
-                      if (torrentUrl) loadTorrent(torrentUrl);
+                      setRetryKey((k) => k + 1);
                     }}
                     className="px-4 py-2 text-xs font-semibold bg-[#242424] hover:bg-[#333] text-white rounded-lg transition-colors flex items-center gap-1.5"
                   >

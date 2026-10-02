@@ -2,14 +2,16 @@
  * WebTorrent Browser Client Manager
  *
  * Provides a clean browser-only singleton client for WebTorrent.
- * Dynamically loads the official WebTorrent browser bundle (/webtorrent.min.js)
- * ensuring zero Node.js/Webpack polyfill conflicts in Next.js on Vercel.
+ * Dynamically loads the WebTorrent browser bundle (/webtorrent.min.js)
+ * with multi-tier fallback (native ES import -> module script injection -> window.WebTorrent).
+ * Zero Node.js/Webpack polyfill conflicts in Next.js on Vercel.
  */
 
 declare global {
   interface Window {
     WebTorrent?: any;
     __wtClientSingleton?: any;
+    __wtScriptPromise?: Promise<any>;
   }
 }
 
@@ -25,49 +27,86 @@ export function isWebRTCSupported(): boolean {
   );
 }
 
+let cachedWebTorrentClass: any = null;
+let scriptLoadingPromise: Promise<any> | null = null;
+
 /**
- * Ensure the WebTorrent browser bundle script is loaded and ready
+ * Ensure the WebTorrent browser bundle script is loaded and ready.
+ * Resolves with the WebTorrent constructor class.
  */
 export async function loadWebTorrentScript(): Promise<any> {
   if (typeof window === 'undefined') {
     throw new Error('WebTorrent cannot be initialized in a server-side environment.');
   }
 
+  // 1. Return immediately if already cached or on window/globalThis
+  if (cachedWebTorrentClass) {
+    return cachedWebTorrentClass;
+  }
   if (window.WebTorrent) {
-    return window.WebTorrent;
+    cachedWebTorrentClass = window.WebTorrent;
+    return cachedWebTorrentClass;
   }
 
-  return new Promise((resolve, reject) => {
-    // Check if script tag is already injected
-    let existingScript = document.querySelector('script[src="/webtorrent.min.js"]') as HTMLScriptElement;
+  // 2. Return in-flight loading promise to avoid duplicate attempts
+  if (scriptLoadingPromise) {
+    return scriptLoadingPromise;
+  }
 
-    if (existingScript) {
-      if (window.WebTorrent) {
-        return resolve(window.WebTorrent);
+  scriptLoadingPromise = (async () => {
+    console.log('[WebTorrent] Initializing browser bundle loader...');
+
+    // Strategy A: Native dynamic import of ES module bundle
+    try {
+      // Use Function constructor so Webpack 5 does not attempt static analysis
+      const dynamicImport = new Function('url', 'return import(url)');
+      const module = await dynamicImport('/webtorrent.min.js');
+      const Ctor = module?.default || module?.WebTorrent || window.WebTorrent;
+      if (typeof Ctor === 'function') {
+        console.log('[WebTorrent] Successfully loaded via native dynamic import.');
+        cachedWebTorrentClass = Ctor;
+        window.WebTorrent = Ctor;
+        return Ctor;
       }
-      existingScript.addEventListener('load', () => resolve(window.WebTorrent));
-      existingScript.addEventListener('error', () =>
-        reject(new Error('Failed to load WebTorrent browser library script.'))
-      );
-      return;
+    } catch (importErr) {
+      console.warn('[WebTorrent] Dynamic import attempt notice:', importErr);
     }
 
-    const script = document.createElement('script');
-    script.src = '/webtorrent.min.js';
-    script.async = true;
-    script.onload = () => {
-      if (window.WebTorrent) {
-        resolve(window.WebTorrent);
-      } else {
-        reject(new Error('WebTorrent library loaded but window.WebTorrent is undefined.'));
+    // Strategy B: Injected <script type="module"> tag with timeout polling
+    return new Promise((resolve, reject) => {
+      if (window.WebTorrent && typeof window.WebTorrent === 'function') {
+        cachedWebTorrentClass = window.WebTorrent;
+        return resolve(window.WebTorrent);
       }
-    };
-    script.onerror = () => {
-      reject(new Error('Failed to load /webtorrent.min.js from public directory.'));
-    };
 
-    document.head.appendChild(script);
-  });
+      let script = document.querySelector('script[data-wt-loader="true"]') as HTMLScriptElement;
+      if (!script) {
+        script = document.createElement('script');
+        script.type = 'module';
+        script.setAttribute('data-wt-loader', 'true');
+        script.src = '/webtorrent.min.js';
+        script.onerror = () => {
+          reject(new Error('Failed to fetch /webtorrent.min.js from server.'));
+        };
+        document.head.appendChild(script);
+      }
+
+      const startTime = Date.now();
+      const interval = setInterval(() => {
+        if (window.WebTorrent && typeof window.WebTorrent === 'function') {
+          clearInterval(interval);
+          cachedWebTorrentClass = window.WebTorrent;
+          console.log('[WebTorrent] Successfully detected window.WebTorrent via script injection.');
+          resolve(window.WebTorrent);
+        } else if (Date.now() - startTime > 12000) {
+          clearInterval(interval);
+          reject(new Error('Timed out waiting for WebTorrent browser bundle to initialize.'));
+        }
+      }, 80);
+    });
+  })();
+
+  return scriptLoadingPromise;
 }
 
 /**
@@ -76,21 +115,26 @@ export async function loadWebTorrentScript(): Promise<any> {
 export async function getWebTorrentClient(): Promise<any> {
   if (!isWebRTCSupported()) {
     throw new Error(
-      'WebRTC is not supported in this browser. WebTorrent requires WebRTC for peer-to-peer data transfer.'
+      'WebRTC is not supported in this browser. WebTorrent requires WebRTC for client-side peer swarming.'
     );
   }
 
   const WebTorrent = await loadWebTorrentScript();
 
   if (!window.__wtClientSingleton || window.__wtClientSingleton.destroyed) {
-    window.__wtClientSingleton = new WebTorrent({
-      maxConns: 55,
-      dht: false, // DHT is UDP only, not available in browser
-    });
+    try {
+      window.__wtClientSingleton = new WebTorrent({
+        maxConns: 55,
+        dht: false, // UDP DHT not supported in browser
+      });
 
-    window.__wtClientSingleton.on('error', (err: any) => {
-      console.warn('[WebTorrent Client Warning]:', err?.message || err);
-    });
+      window.__wtClientSingleton.on('error', (err: any) => {
+        console.warn('[WebTorrent Client Warning]:', err?.message || err);
+      });
+    } catch (err: any) {
+      console.error('[WebTorrent Init Error]:', err);
+      throw new Error(`Failed to instantiate WebTorrent client: ${err?.message || err}`);
+    }
   }
 
   return window.__wtClientSingleton;
@@ -101,6 +145,13 @@ export interface LoadTorrentOptions {
   trackers?: string[];
 }
 
+const PUBLIC_WEBRTC_TRACKERS = [
+  'wss://tracker.openwebtorrent.com',
+  'wss://tracker.btorrent.xyz',
+  'wss://tracker.fastcast.nz',
+  'wss://tracker.webtorrent.dev',
+];
+
 /**
  * Load a torrent from a .torrent URL, File, or magnet URI
  * @param torrentUrl URL to .torrent file or magnet link
@@ -110,74 +161,106 @@ export async function loadTorrent(
   torrentUrl: string,
   options: LoadTorrentOptions = {}
 ): Promise<any> {
+  if (!torrentUrl || typeof torrentUrl !== 'string' || !torrentUrl.trim()) {
+    throw new Error('No valid torrent URL or magnet link provided.');
+  }
+
   const client = await getWebTorrentClient();
-  const { timeoutMs = 30000 } = options;
+  const { timeoutMs = 25000 } = options;
 
-  let torrentInput: any = torrentUrl;
+  let torrentInput: any = torrentUrl.trim();
 
-  // If loading from a URL (e.g. /torrents/movie.torrent), fetch as ArrayBuffer for reliable parsing
-  if (typeof torrentUrl === 'string' && (torrentUrl.startsWith('/') || torrentUrl.startsWith('http'))) {
+  // If loading from a local or remote .torrent URL, fetch bytes directly into a Uint8Array
+  if (torrentInput.startsWith('/') || torrentInput.startsWith('http')) {
     try {
-      const response = await fetch(torrentUrl);
+      console.log(`[WebTorrent] Fetching .torrent file from: ${torrentInput}`);
+      const response = await fetch(torrentInput);
       if (!response.ok) {
-        throw new Error(`HTTP error ${response.status} while fetching ${torrentUrl}`);
+        throw new Error(`HTTP ${response.status} ${response.statusText}`);
       }
       const arrayBuffer = await response.arrayBuffer();
-      // Use Uint8Array / Buffer in browser
       torrentInput = new Uint8Array(arrayBuffer);
+      console.log(`[WebTorrent] .torrent file fetched (${torrentInput.byteLength} bytes)`);
     } catch (err: any) {
-      throw new Error(`Failed to load .torrent file from ${torrentUrl}: ${err.message}`);
+      throw new Error(`Unable to fetch .torrent file from "${torrentUrl}": ${err.message}`);
     }
   }
 
-  // Check if this torrent is already loaded
+  // Check if this exact torrent is already active in client
   const existing = client.torrents.find((t: any) => {
-    return t.torrentFileBlobURL === torrentUrl || t.magnetURI === torrentUrl;
+    return (
+      (t.torrentFileBlobURL && t.torrentFileBlobURL === torrentUrl) ||
+      (t.magnetURI && t.magnetURI === torrentUrl)
+    );
   });
 
   if (existing && !existing.destroyed) {
-    return existing;
+    if (existing.ready || (existing.files && existing.files.length > 0)) {
+      console.log('[WebTorrent] Reusing active ready torrent:', existing.name || existing.infoHash);
+      return existing;
+    }
   }
 
   return new Promise((resolve, reject) => {
+    let settled = false;
     let timeoutTimer: any = null;
 
-    const timeoutPromise = new Promise((_, rej) => {
-      timeoutTimer = setTimeout(() => {
-        rej(new Error(`Timed out waiting for torrent metadata (${timeoutMs / 1000}s).`));
-      }, timeoutMs);
-    });
+    const cleanup = () => {
+      if (timeoutTimer) {
+        clearTimeout(timeoutTimer);
+        timeoutTimer = null;
+      }
+    };
+
+    const handleSuccess = (tor: any) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      console.log(`[WebTorrent] Torrent ready: "${tor.name || 'unnamed'}" with ${tor.files?.length || 0} file(s)`);
+      resolve(tor);
+    };
+
+    const handleError = (err: any) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      console.error('[WebTorrent] Torrent load failed:', err);
+      reject(new Error(err?.message || 'Failed to load torrent metadata.'));
+    };
+
+    // Timeout safety net
+    timeoutTimer = setTimeout(() => {
+      handleError(
+        new Error(
+          `Timed out waiting for torrent metadata (${timeoutMs / 1000}s). Please check WebRTC trackers or peer availability.`
+        )
+      );
+    }, timeoutMs);
 
     try {
-      const torrent = client.add(torrentInput, {
-        announce: [
-          'wss://tracker.openwebtorrent.com',
-          'wss://tracker.btorrent.xyz',
-          'wss://tracker.fastcast.nz',
-          'wss://tracker.webtorrent.dev',
-        ],
-      });
+      const torrent = client.add(
+        torrentInput,
+        {
+          announce: PUBLIC_WEBRTC_TRACKERS,
+        },
+        (tor: any) => {
+          handleSuccess(tor);
+        }
+      );
 
-      torrent.on('metadata', () => {
-        if (timeoutTimer) clearTimeout(timeoutTimer);
-        resolve(torrent);
-      });
+      // In case metadata was parsed synchronously from the .torrent buffer
+      if (torrent.ready || (torrent.files && torrent.files.length > 0)) {
+        handleSuccess(torrent);
+      } else {
+        torrent.once('ready', () => handleSuccess(torrent));
+        torrent.once('metadata', () => handleSuccess(torrent));
+      }
 
       torrent.on('error', (err: any) => {
-        if (timeoutTimer) clearTimeout(timeoutTimer);
-        reject(new Error(`Torrent error: ${err.message || err}`));
-      });
-
-      // Race against timeout
-      timeoutPromise.catch((err) => {
-        try {
-          torrent.destroy();
-        } catch {}
-        reject(err);
+        handleError(err);
       });
     } catch (err: any) {
-      if (timeoutTimer) clearTimeout(timeoutTimer);
-      reject(new Error(`Failed to add torrent to WebTorrent: ${err.message || err}`));
+      handleError(err);
     }
   });
 }
