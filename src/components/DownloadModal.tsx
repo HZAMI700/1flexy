@@ -19,6 +19,8 @@ import {
   CheckCircle2,
   Activity,
   AlertCircle,
+  Sparkles,
+  Play,
 } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import { DownloadLinkItem, DownloadResponsePayload } from '@/services/downloadProviders';
@@ -47,7 +49,7 @@ const PROVIDER_NAMES = [
 ];
 
 export const DownloadModal: React.FC = () => {
-  const { downloadModal, closeDownload } = useAppStore();
+  const { downloadModal, closeDownload, openTorrentModal } = useAppStore();
   const { isOpen, media, season, episode } = downloadModal;
 
   const [loading, setLoading] = useState(true);
@@ -317,7 +319,65 @@ export const DownloadModal: React.FC = () => {
         )}
 
         {/* Main Content Area */}
-        <div className="p-6 overflow-y-auto flex-grow space-y-3">
+        <div className="p-6 overflow-y-auto flex-grow space-y-4">
+          {/* P2P WebTorrent Browser Media Option Card */}
+          <div className="p-4 rounded-xl bg-gradient-to-r from-[#1c1212] via-[#171313] to-[#141414] border border-[#E50914]/40 flex items-center justify-between gap-4 flex-wrap shadow-lg">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-10 h-10 rounded-xl bg-[#E50914]/20 border border-[#E50914]/40 flex items-center justify-center text-[#E50914] flex-shrink-0">
+                <Sparkles className="w-5 h-5" />
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-bold text-white text-sm">
+                    WebTorrent P2P Browser Engine
+                  </span>
+                  <span className="text-[10px] font-bold uppercase tracking-wider bg-[#E50914] text-white px-2 py-0.5 rounded-full">
+                    Client-Side Media
+                  </span>
+                </div>
+                <p className="text-xs text-[#a0a0a0] mt-0.5 truncate">
+                  Zero backend &bull; Extracts .mp4/.mkv directly in your browser memory
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <button
+                type="button"
+                onClick={() => {
+                  closeDownload();
+                  openTorrentModal(
+                    media,
+                    media.torrentUrl || '/torrents/sintel.torrent',
+                    media.mediaFile || `${media.title.toLowerCase().replace(/[^a-z0-9]/g, '-')}.mp4`,
+                    'stream'
+                  );
+                }}
+                className="px-3.5 py-2 rounded-lg bg-[#282828] hover:bg-[#363636] text-white text-xs font-semibold flex items-center gap-1.5 transition-colors border border-[#383838]"
+              >
+                <Play className="w-3.5 h-3.5 fill-current" />
+                <span>P2P Stream</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  closeDownload();
+                  openTorrentModal(
+                    media,
+                    media.torrentUrl || '/torrents/sintel.torrent',
+                    media.mediaFile || `${media.title.toLowerCase().replace(/[^a-z0-9]/g, '-')}.mp4`,
+                    'download'
+                  );
+                }}
+                className="px-4 py-2 rounded-lg bg-[#E50914] hover:bg-[#F40612] text-white text-xs font-bold flex items-center gap-1.5 transition-colors shadow-md shadow-[#E50914]/25"
+              >
+                <Download className="w-4 h-4" />
+                <span>P2P Download</span>
+              </button>
+            </div>
+          </div>
+
           {loading ? (
             <div className="py-14 flex flex-col items-center justify-center text-center">
               <div className="relative mb-5">

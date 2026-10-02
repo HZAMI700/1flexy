@@ -6,6 +6,7 @@ import { PlayerModal } from '@/components/PlayerModal';
 import { DownloadModal } from '@/components/DownloadModal';
 import { DetailModal } from '@/components/DetailModal';
 import { SearchModal } from '@/components/SearchModal';
+import { TorrentModal } from '@/components/TorrentModal';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { AdBlockerInit } from '@/components/AdBlockerInit';
 
@@ -72,6 +73,7 @@ export default function RootLayout({
         <DetailModal />
         <PlayerModal />
         <DownloadModal />
+        <TorrentModal />
         <SearchModal />
       </body>
     </html>

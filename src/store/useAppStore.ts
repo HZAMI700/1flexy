@@ -39,6 +39,14 @@ interface DownloadModalState {
   episode?: number;
 }
 
+export interface TorrentModalState {
+  isOpen: boolean;
+  media: MediaItem | null;
+  torrentUrl: string;
+  preferredFilename?: string;
+  mode: 'download' | 'stream';
+}
+
 interface DetailModalState {
   isOpen: boolean;
   media: MediaItem | null;
@@ -78,6 +86,11 @@ interface AppState {
   downloadModal: DownloadModalState;
   openDownload: (media: MediaItem, season?: number, episode?: number) => void;
   closeDownload: () => void;
+
+  // WebTorrent Direct Media Modal
+  torrentModal: TorrentModalState;
+  openTorrentModal: (media: MediaItem, torrentUrl?: string, preferredFilename?: string, mode?: 'download' | 'stream') => void;
+  closeTorrentModal: () => void;
 
   // Profiles
   activeProfile: UserProfile;
@@ -251,6 +264,36 @@ export const useAppStore = create<AppState>()(
         set((state) => ({
           downloadModal: {
             ...state.downloadModal,
+            isOpen: false,
+          },
+        }));
+      },
+
+      // WebTorrent Direct Media Modal
+      torrentModal: {
+        isOpen: false,
+        media: null,
+        torrentUrl: '',
+        preferredFilename: '',
+        mode: 'download',
+      },
+      openTorrentModal: (media, customTorrentUrl, customFilename, mode = 'download') => {
+        const torrentUrl = customTorrentUrl || media.torrentUrl || '/torrents/sintel.torrent';
+        const preferredFilename = customFilename || media.mediaFile;
+        set({
+          torrentModal: {
+            isOpen: true,
+            media,
+            torrentUrl,
+            preferredFilename,
+            mode,
+          },
+        });
+      },
+      closeTorrentModal: () => {
+        set((state) => ({
+          torrentModal: {
+            ...state.torrentModal,
             isOpen: false,
           },
         }));

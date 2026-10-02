@@ -64,6 +64,8 @@ export interface MediaItem {
   progressPercent?: number;
   current_season?: number;
   current_episode?: number;
+  torrentUrl?: string;
+  mediaFile?: string;
 }
 
 export interface DownloadLink {
