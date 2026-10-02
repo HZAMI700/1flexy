@@ -1,5 +1,5 @@
 /**
- * VidFast Pro AdBlocker & Popunder Filter Service Worker
+ * VidFast Pro AdBlocker & Popunder Filter Service Worker (v8.0.0)
  * Intercepts outbound network requests and drops ad network telemetry and popunders.
  */
 const AD_DOMAINS = [
@@ -26,6 +26,22 @@ const AD_DOMAINS = [
   'trackingscript',
   'bet365',
   '1xbet',
+  'deloplen',
+  'coomeet',
+  'monetag',
+  'galaksion',
+  'vidoomy',
+  'admaven',
+  'ad-maven',
+  'yllix',
+  'bidvertiser',
+  'trafficstars',
+  'zeroredirect',
+  'alwingulla',
+  'bidgear',
+  'adnxs',
+  'clicktag',
+  'adsystem',
 ];
 
 self.addEventListener('install', (event) => {
@@ -37,8 +53,8 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  const url = event.request.url;
-  if (AD_DOMAINS.some((d) => url.toLowerCase().includes(d))) {
+  const url = event.request.url.toLowerCase();
+  if (AD_DOMAINS.some((d) => url.includes(d))) {
     event.respondWith(new Response('', { status: 204, statusText: 'Blocked by VidFast AdShield' }));
   }
 });

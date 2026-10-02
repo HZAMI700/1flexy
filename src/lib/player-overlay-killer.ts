@@ -115,24 +115,47 @@ export function watchForOverlayInjection(container: HTMLElement): OverlayKillerS
   // 1. Initial cleanup
   killPlayerOverlays(container);
 
-  // 2. Click Interceptor (Capture phase): blocks any target=_blank or popunder click
-  const clickHandler = (e: MouseEvent) => {
+  // 2. Click & Pointerdown Interceptors (Capture phase): blocks any target=_blank, popunder or overlay click
+  const interceptPopunderEvent = (e: Event) => {
     const target = e.target as HTMLElement;
     if (!target) return;
 
-    // Check if click originates from an anchor targeting blank
+    // Check if target is an overlay click trap or external anchor
     const anchor = target.closest('a');
-    if (anchor && (anchor.target === '_blank' || anchor.getAttribute('target') === '_blank')) {
-      const href = anchor.href || '';
-      if (!href.includes(window.location.hostname)) {
+    if (anchor) {
+      const isBlank = anchor.target === '_blank' || anchor.getAttribute('target') === '_blank';
+      const href = anchor.href || anchor.getAttribute('href') || '';
+      const isExternal = href && !href.startsWith('/') && !href.startsWith(window.location.origin);
+      if (isBlank || isExternal) {
         e.preventDefault();
         e.stopPropagation();
+        e.stopImmediatePropagation();
+        console.warn('🛡️ [OverlayKiller] Neutralized popunder event on anchor:', href);
         anchor.remove();
+        return;
+      }
+    }
+
+    // Check if clicking an invisible overlay placed above the player
+    const iframe = container.querySelector('iframe');
+    if (iframe && target !== iframe && !container.querySelector('button')?.contains(target)) {
+      const style = window.getComputedStyle(target);
+      if (style.position === 'absolute' || style.position === 'fixed') {
+        const opacity = parseFloat(style.opacity);
+        if (style.backgroundColor === 'transparent' || opacity < 0.2 || style.zIndex !== 'auto') {
+          e.preventDefault();
+          e.stopPropagation();
+          e.stopImmediatePropagation();
+          console.warn('🛡️ [OverlayKiller] Destroyed transparent click trap overlay element');
+          target.remove();
+        }
       }
     }
   };
 
-  container.addEventListener('click', clickHandler, true);
+  container.addEventListener('click', interceptPopunderEvent, true);
+  container.addEventListener('pointerdown', interceptPopunderEvent, true);
+  container.addEventListener('mousedown', interceptPopunderEvent, true);
 
   // 3. MutationObserver watching for re-injected DOM nodes
   let observer: MutationObserver | null = null;
@@ -195,7 +218,9 @@ export function watchForOverlayInjection(container: HTMLElement): OverlayKillerS
 
   return {
     cleanup: () => {
-      container.removeEventListener('click', clickHandler, true);
+      container.removeEventListener('click', interceptPopunderEvent, true);
+      container.removeEventListener('pointerdown', interceptPopunderEvent, true);
+      container.removeEventListener('mousedown', interceptPopunderEvent, true);
       if (observer) {
         observer.disconnect();
       }

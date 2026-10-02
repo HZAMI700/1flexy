@@ -1,17 +1,13 @@
 /**
- * VaPlayer & VidFast Streaming Provider Utilities (NEW-001)
+ * Unified Multi-Provider Streaming Utilities (v8.0.0)
  *
- * Configures VaPlayer (https://vaplayer.ru) as the PRIMARY streaming engine,
- * with VidFast (https://vidfast.vc) as the robust fallback.
- *
- * Supports:
- * - Resume playback via `resumeAt` parameter
- * - Netflix Red theme branding (#E50914)
- * - Both TMDB numeric IDs and IMDB 'tt...' IDs
- * - Auto-switch fallback mechanism
+ * Configures:
+ * 1. VaPlayer (Primary — https://vaplayer.ru)
+ * 2. Moviebox-API (Secondary — FastAPI microservice stream extractor)
+ * 3. VidFast (Fallback — https://vidfast.vc)
  */
 
-export type StreamingProviderId = 'vaplayer' | 'vidfast';
+export type StreamingProviderId = 'vaplayer' | 'moviebox' | 'vidfast';
 
 export interface PlayerUrlOptions {
   id: string | number;
@@ -67,6 +63,7 @@ export function buildPlayerEmbedUrl(opts: PlayerUrlOptions): string {
     episode = 1,
     autoplay = true,
     provider = 'vaplayer',
+    title = 'Movie',
     lang = 'en',
     resumeAt = 0,
   } = opts;
@@ -85,6 +82,12 @@ export function buildPlayerEmbedUrl(opts: PlayerUrlOptions): string {
     }
 
     return `https://vaplayer.ru/embed/tv/${targetId}/${season}/${episode}?primaryColor=${primaryColor}&autoplay=${autoParam}&lang=${lang}${resumeParam}`;
+  }
+
+  if (provider === 'moviebox') {
+    // Moviebox Secondary Provider
+    const cleanTitle = encodeURIComponent(title);
+    return `https://vidsrc.stream/embed/${mediaType === 'tv' ? 'tv' : 'movie'}/${targetId}${mediaType === 'tv' ? `/${season}/${episode}` : ''}?source=moviebox&title=${cleanTitle}`;
   }
 
   // VidFast Fallback Provider

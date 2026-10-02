@@ -155,8 +155,9 @@ class EnhancedAdBlockerService {
         isSameOrigin = false;
       }
 
-      if (!url || isAd || (!isSameOrigin && (features || name === '_blank'))) {
-        console.warn('🛡️ [AdBlocker] Blocked popunder window.open attempt:', urlString || 'blank');
+      // Strictly block any external/cross-origin window.open call (Zero pop-unders)
+      if (!url || isAd || !isSameOrigin) {
+        console.warn('🛡️ [AdBlocker] Neutralized popunder window.open attempt:', urlString || 'blank');
         self.stats.blockedPopups++;
         self.notify(urlString || 'popunder');
         return null;
@@ -289,6 +290,29 @@ class EnhancedAdBlockerService {
    * 5. Intercept clickjacking & iframe window.open
    */
   private interceptIframeClicks(): void {
+    // Prevent synthetic programmatic click() calls on dynamically created anchor elements
+    try {
+      const origAnchorClick = HTMLAnchorElement.prototype.click;
+      const self = this;
+      HTMLAnchorElement.prototype.click = function () {
+        const href = this.href || this.getAttribute('href') || '';
+        const isExternal =
+          href &&
+          !href.startsWith('/') &&
+          !href.startsWith(window.location.origin) &&
+          !href.startsWith('#');
+        if (isExternal && !this.hasAttribute('download') && !this.getAttribute('data-allowed')) {
+          console.warn('🛡️ [AdBlocker] Blocked synthetic anchor click popunder:', href);
+          self.stats.blockedPopups++;
+          self.notify(href);
+          return;
+        }
+        return origAnchorClick.call(this);
+      };
+    } catch {
+      // Ignore if prototype is locked
+    }
+
     // Intercept clicks on links targeting _blank without safe noopener
     document.addEventListener(
       'click',

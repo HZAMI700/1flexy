@@ -25,6 +25,7 @@ import { DownloadLinkItem, DownloadResponsePayload } from '@/services/downloadPr
 import { getPosterWithFallback, generateSvgPlaceholder } from '@/lib/poster-resolver';
 
 const PROVIDER_NAMES = [
+  'Moviebox-API (walterwhite-69)',
   'TeraBox Direct Link API',
   'HDHub Direct Bypass API',
   'Sinhalasub Direct Engine',
@@ -113,7 +114,7 @@ export const DownloadModal: React.FC = () => {
         // Fall through
       }
       setErrorMessage(
-        'Unable to resolve direct download links from all 12 providers. You may retry or check provider health status.'
+        'Unable to resolve direct download links from all 13 providers. You may retry or check provider health status.'
       );
       setLoading(false);
     }

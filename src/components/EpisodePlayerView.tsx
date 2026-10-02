@@ -20,6 +20,7 @@ import { useVaPlayerEvents } from '@/lib/vaplayer-events';
 
 const PROVIDERS: { id: StreamingProviderId; name: string }[] = [
   { id: 'vaplayer', name: 'VaPlayer (Primary)' },
+  { id: 'moviebox', name: 'MovieBox (Secondary)' },
   { id: 'vidfast', name: 'VidFast (Fallback)' },
 ];
 
@@ -84,7 +85,12 @@ export const EpisodePlayerView: React.FC<EpisodePlayerViewProps> = ({
     }
     if (provider === 'vaplayer') {
       loadTimeoutRef.current = setTimeout(() => {
-        console.warn('VaPlayer watchdog: switching to VidFast fallback');
+        console.warn('VaPlayer watchdog: switching to MovieBox secondary');
+        setProvider('moviebox');
+      }, 8000);
+    } else if (provider === 'moviebox') {
+      loadTimeoutRef.current = setTimeout(() => {
+        console.warn('MovieBox watchdog: switching to VidFast fallback');
         setProvider('vidfast');
       }, 8000);
     }
@@ -237,6 +243,8 @@ export const EpisodePlayerView: React.FC<EpisodePlayerViewProps> = ({
           onLoad={handleIframeLoaded}
           onError={() => {
             if (provider === 'vaplayer') {
+              setProvider('moviebox');
+            } else if (provider === 'moviebox') {
               setProvider('vidfast');
             }
           }}
@@ -248,9 +256,9 @@ export const EpisodePlayerView: React.FC<EpisodePlayerViewProps> = ({
         <div className="flex items-center gap-3">
           <span className="flex items-center gap-1.5 text-[11px]">
             <span className="w-2 h-2 rounded-full bg-[#E50914] animate-pulse" />
-            Server: {provider === 'vaplayer' ? 'VaPlayer Primary Engine' : 'VidFast Fallback'}
+            Server: {provider === 'vaplayer' ? 'VaPlayer Primary Engine' : provider === 'moviebox' ? 'MovieBox Secondary (Stream Extractor)' : 'VidFast Fallback'}
           </span>
-          {provider === 'vidfast' && (
+          {provider !== 'vaplayer' && (
             <button
               onClick={() => setProvider('vaplayer')}
               className="text-[11px] text-[#E50914] hover:underline flex items-center gap-1"

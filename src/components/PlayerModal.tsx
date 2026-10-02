@@ -23,6 +23,7 @@ import { useVaPlayerEvents } from '@/lib/vaplayer-events';
 
 const PROVIDERS: { id: StreamingProviderId; name: string; tag: string }[] = [
   { id: 'vaplayer', name: 'VaPlayer (Primary)', tag: 'Clean / Fast' },
+  { id: 'moviebox', name: 'MovieBox (Secondary)', tag: 'Stream Extractor' },
   { id: 'vidfast', name: 'VidFast (Fallback)', tag: 'Mirror Server' },
 ];
 
@@ -92,7 +93,7 @@ export const PlayerModal: React.FC = () => {
     };
   }, [isOpen, currentProvider, season, episode]);
 
-  // Fallback 8-second watchdog: if primary VaPlayer fails to load, offer/auto-switch to VidFast
+  // Fallback watchdog: VaPlayer (8s) -> Moviebox-API (8s) -> VidFast fallback
   useEffect(() => {
     if (!isOpen) return;
 
@@ -102,8 +103,16 @@ export const PlayerModal: React.FC = () => {
 
     if (currentProvider === 'vaplayer') {
       loadTimeoutRef.current = setTimeout(() => {
-        // If still in initial unverified state, show notice and switch to fallback
-        console.warn('VaPlayer load timed out (>8s). Switching to VidFast fallback...');
+        console.warn('VaPlayer load timed out (>8s). Switching to MovieBox secondary...');
+        setIsSwitching(true);
+        setTimeout(() => {
+          setCurrentProvider('moviebox');
+          setIsSwitching(false);
+        }, 600);
+      }, 8000);
+    } else if (currentProvider === 'moviebox') {
+      loadTimeoutRef.current = setTimeout(() => {
+        console.warn('MovieBox load timed out (>8s). Switching to VidFast fallback...');
         setIsSwitching(true);
         setTimeout(() => {
           setCurrentProvider('vidfast');
@@ -349,7 +358,7 @@ export const PlayerModal: React.FC = () => {
           {isSwitching ? (
             <div className="flex flex-col items-center justify-center gap-3 text-[#B3B3B3]">
               <div className="w-8 h-8 border-2 border-[#E50914] border-t-transparent rounded-full animate-spin" />
-              <p className="text-sm">Connecting to {currentProvider === 'vaplayer' ? 'VaPlayer Primary' : 'VidFast Fallback'}...</p>
+              <p className="text-sm">Connecting to {currentProvider === 'vaplayer' ? 'VaPlayer Primary' : currentProvider === 'moviebox' ? 'MovieBox Secondary' : 'VidFast Fallback'}...</p>
             </div>
           ) : (
             <iframe
@@ -365,6 +374,8 @@ export const PlayerModal: React.FC = () => {
               onLoad={handleIframeLoaded}
               onError={() => {
                 if (currentProvider === 'vaplayer') {
+                  setCurrentProvider('moviebox');
+                } else if (currentProvider === 'moviebox') {
                   setCurrentProvider('vidfast');
                 }
               }}
@@ -377,9 +388,9 @@ export const PlayerModal: React.FC = () => {
           <div className="flex items-center gap-3">
             <span className="flex items-center gap-1.5 text-[11px]">
               <span className="w-2 h-2 rounded-full bg-[#E50914] animate-pulse" />
-              Connected: {currentProvider === 'vaplayer' ? 'VaPlayer Primary (vidapi.ru)' : 'VidFast.vc Fallback'}
+              Connected: {currentProvider === 'vaplayer' ? 'VaPlayer Primary (vidapi.ru)' : currentProvider === 'moviebox' ? 'MovieBox Secondary (Stream Extractor)' : 'VidFast.vc Fallback'}
             </span>
-            {currentProvider === 'vidfast' && (
+            {currentProvider !== 'vaplayer' && (
               <button
                 onClick={() => handleProviderSwitch('vaplayer')}
                 className="text-[11px] text-[#E50914] hover:underline flex items-center gap-1"
