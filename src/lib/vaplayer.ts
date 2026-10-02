@@ -85,9 +85,11 @@ export function buildPlayerEmbedUrl(opts: PlayerUrlOptions): string {
   }
 
   if (provider === 'moviebox') {
-    // Moviebox Secondary Provider
-    const cleanTitle = encodeURIComponent(title);
-    return `https://vidsrc.stream/embed/${mediaType === 'tv' ? 'tv' : 'movie'}/${targetId}${mediaType === 'tv' ? `/${season}/${episode}` : ''}?source=moviebox&title=${cleanTitle}`;
+    // Moviebox Secondary Provider (Verified live embed endpoint)
+    if (mediaType === 'movie') {
+      return `https://vidsrc.to/embed/movie/${targetId}`;
+    }
+    return `https://vidsrc.to/embed/tv/${targetId}/${season}/${episode}`;
   }
 
   if (provider === 'nxsha') {
