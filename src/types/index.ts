@@ -61,6 +61,9 @@ export interface MediaItem {
   cast?: CastMember[];
   similar?: MediaItem[];
   trailer_key?: string;
+  progressPercent?: number;
+  current_season?: number;
+  current_episode?: number;
 }
 
 export interface DownloadLink {

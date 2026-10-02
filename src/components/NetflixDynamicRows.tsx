@@ -14,8 +14,11 @@ export const NetflixDynamicRows: React.FC = () => {
     poster_path: item.poster,
     backdrop_path: item.backdrop,
     media_type: item.mediaType,
-    overview: '',
+    overview: item.episodeTitle || '',
     vote_average: 8.5,
+    progressPercent: item.progressPercent,
+    current_season: item.season,
+    current_episode: item.episode,
   }));
 
   return (

@@ -5,8 +5,6 @@ import {
   X,
   Maximize2,
   Minimize2,
-  Tv,
-  Film,
   Server,
   Share2,
   Heart,
@@ -15,15 +13,17 @@ import {
   ShieldCheck,
   Check,
   Download,
-  Settings,
+  AlertCircle,
+  RotateCcw,
 } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import { watchForOverlayInjection, killPlayerOverlays } from '@/lib/player-overlay-killer';
+import { buildPlayerEmbedUrl, getSavedProgress, StreamingProviderId } from '@/lib/vaplayer';
+import { useVaPlayerEvents } from '@/lib/vaplayer-events';
 
-const SERVERS = [
-  { id: 'vidfast', name: 'VidFast Primary (Fastest)', provider: 'vidfast.vc' },
-  { id: 'vidsrc', name: 'CloudStream Backup', provider: 'vidsrc.cc' },
-  { id: 'embedsu', name: 'FastCDN Mirror', provider: 'embed.su' },
+const PROVIDERS: { id: StreamingProviderId; name: string; tag: string }[] = [
+  { id: 'vaplayer', name: 'VaPlayer (Primary)', tag: 'Clean / Fast' },
+  { id: 'vidfast', name: 'VidFast (Fallback)', tag: 'Mirror Server' },
 ];
 
 export const PlayerModal: React.FC = () => {
@@ -37,14 +37,51 @@ export const PlayerModal: React.FC = () => {
     saveProgress,
   } = useAppStore();
 
-  const { isOpen, media, season = 1, episode = 1, server = 'VidFast Primary' } = playerModal;
+  const { isOpen, media, season = 1, episode = 1 } = playerModal;
 
-  const [selectedServer, setSelectedServer] = useState('vidfast');
+  const [currentProvider, setCurrentProvider] = useState<StreamingProviderId>('vaplayer');
   const [isTheaterMode, setIsTheaterMode] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
   const [autoPlay, setAutoPlay] = useState(true);
+  const [isSwitching, setIsSwitching] = useState(false);
+  const [loadError, setLoadError] = useState(false);
+  const [autoNextNotice, setAutoNextNotice] = useState<number | null>(null);
+
   const playerContainerRef = useRef<HTMLDivElement>(null);
   const videoWrapperRef = useRef<HTMLDivElement>(null);
+  const loadTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Read saved progress timestamp for continue watching
+  const [resumeSeconds, setResumeSeconds] = useState(0);
+
+  useEffect(() => {
+    if (isOpen && media) {
+      const saved = getSavedProgress(media.id, media.media_type, season, episode);
+      setResumeSeconds(saved);
+      setCurrentProvider('vaplayer');
+      setLoadError(false);
+    }
+  }, [isOpen, media, season, episode]);
+
+  // Hook VaPlayer postMessage events for resume, continue watching, and auto-next
+  useVaPlayerEvents({
+    media,
+    currentSeason: season,
+    currentEpisode: episode,
+    onAutoNextEpisode: (nextEp) => {
+      if (media?.media_type === 'tv') {
+        setAutoNextNotice(nextEp);
+        setTimeout(() => {
+          openPlayer(media, season, nextEp);
+          setAutoNextNotice(null);
+        }, 3500);
+      }
+    },
+    onStatusChange: (_status, _progress, _duration) => {
+      // Clear load error on successful activity
+      setLoadError(false);
+    },
+  });
 
   // Watch and remove any pop-under click-catchers stacked over player
   useEffect(() => {
@@ -53,7 +90,34 @@ export const PlayerModal: React.FC = () => {
     return () => {
       session.cleanup();
     };
-  }, [isOpen, selectedServer, season, episode]);
+  }, [isOpen, currentProvider, season, episode]);
+
+  // Fallback 8-second watchdog: if primary VaPlayer fails to load, offer/auto-switch to VidFast
+  useEffect(() => {
+    if (!isOpen) return;
+
+    if (loadTimeoutRef.current) {
+      clearTimeout(loadTimeoutRef.current);
+    }
+
+    if (currentProvider === 'vaplayer') {
+      loadTimeoutRef.current = setTimeout(() => {
+        // If still in initial unverified state, show notice and switch to fallback
+        console.warn('VaPlayer load timed out (>8s). Switching to VidFast fallback...');
+        setIsSwitching(true);
+        setTimeout(() => {
+          setCurrentProvider('vidfast');
+          setIsSwitching(false);
+        }, 600);
+      }, 8000);
+    }
+
+    return () => {
+      if (loadTimeoutRef.current) {
+        clearTimeout(loadTimeoutRef.current);
+      }
+    };
+  }, [isOpen, currentProvider, season, episode]);
 
   // Close on Escape key
   useEffect(() => {
@@ -74,54 +138,22 @@ export const PlayerModal: React.FC = () => {
     };
   }, [isOpen, closePlayer]);
 
-  // Track progress in watch history
-  useEffect(() => {
-    if (isOpen && media) {
-      saveProgress({
-        id: media.id,
-        mediaType: media.media_type,
-        title: media.title,
-        poster: media.poster_path,
-        backdrop: media.backdrop_path,
-        season: media.media_type === 'tv' ? season : undefined,
-        episode: media.media_type === 'tv' ? episode : undefined,
-        episodeTitle: media.media_type === 'tv' ? `Episode ${episode}` : undefined,
-        currentTime: 0,
-        duration: media.runtime ? media.runtime * 60 : 7200,
-        progressPercent: 15,
-        lastWatched: Date.now(),
-      });
-    }
-  }, [isOpen, media, season, episode, saveProgress]);
-
   if (!isOpen || !media) return null;
 
   const isFav = favorites.some((item) => item.id.toString() === media.id.toString());
   const tmdbId = media.tmdb_id || media.id;
+  const imdbId = media.imdb_id;
 
-  // Build embed URL based on provider & specifications
-  const getEmbedUrl = () => {
-    const theme = '16A085';
-    if (selectedServer === 'vidfast') {
-      if (media.media_type === 'movie') {
-        return `https://vidfast.vc/movie/${tmdbId}?autoPlay=${autoPlay}&title=true&poster=true&theme=${theme}&chromecast=true&fullscreenButton=true`;
-      }
-      return `https://vidfast.vc/tv/${tmdbId}/${season}/${episode}?autoPlay=${autoPlay}&nextButton=true&autoNext=true&theme=${theme}&chromecast=true`;
-    }
-
-    if (selectedServer === 'vidsrc') {
-      if (media.media_type === 'movie') {
-        return `https://vidsrc.cc/v2/embed/movie/${tmdbId}`;
-      }
-      return `https://vidsrc.cc/v2/embed/tv/${tmdbId}/${season}/${episode}`;
-    }
-
-    // Embed.su
-    if (media.media_type === 'movie') {
-      return `https://embed.su/embed/movie/${tmdbId}`;
-    }
-    return `https://embed.su/embed/tv/${tmdbId}/${season}/${episode}`;
-  };
+  const embedUrl = buildPlayerEmbedUrl({
+    id: tmdbId,
+    imdbId,
+    mediaType: media.media_type,
+    season,
+    episode,
+    autoplay: autoPlay,
+    provider: currentProvider,
+    resumeAt: resumeSeconds,
+  });
 
   const handleShare = () => {
     const url = typeof window !== 'undefined' ? window.location.href : '';
@@ -131,34 +163,38 @@ export const PlayerModal: React.FC = () => {
   };
 
   const handleNextEpisode = () => {
-    openPlayer(media, season, episode + 1, server);
+    openPlayer(media, season, episode + 1);
   };
 
   const handlePrevEpisode = () => {
     if (episode > 1) {
-      openPlayer(media, season, episode - 1, server);
+      openPlayer(media, season, episode - 1);
     }
   };
 
-  const toggleFullscreen = () => {
-    if (!playerContainerRef.current) return;
-    if (!document.fullscreenElement) {
-      playerContainerRef.current.requestFullscreen().catch((err) => {
-        console.warn('Fullscreen request failed:', err);
-      });
-    } else {
-      document.exitFullscreen().catch(() => {});
+  const handleIframeLoaded = () => {
+    if (loadTimeoutRef.current) {
+      clearTimeout(loadTimeoutRef.current);
     }
+    if (videoWrapperRef.current) {
+      killPlayerOverlays(videoWrapperRef.current);
+    }
+  };
+
+  const handleProviderSwitch = (provider: StreamingProviderId) => {
+    setIsSwitching(true);
+    setCurrentProvider(provider);
+    setTimeout(() => setIsSwitching(false), 300);
   };
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-xl p-0 sm:p-4 overflow-y-auto animate-fadeIn"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 backdrop-blur-xl p-0 sm:p-4 overflow-y-auto animate-fadeIn"
       onClick={closePlayer}
     >
       <div
         ref={playerContainerRef}
-        className={`bg-surface-dark border border-surface-border rounded-none sm:rounded-2xl overflow-hidden shadow-2xl flex flex-col transition-all duration-300 w-full ${
+        className={`bg-[#141414] border border-[#282828] rounded-none sm:rounded-2xl overflow-hidden shadow-2xl flex flex-col transition-all duration-300 w-full ${
           isTheaterMode
             ? 'max-w-[98vw] h-[95vh]'
             : 'max-w-6xl h-full sm:h-auto sm:max-h-[92vh]'
@@ -166,13 +202,13 @@ export const PlayerModal: React.FC = () => {
         onClick={(e) => e.stopPropagation()}
       >
         {/* Custom Top Control Bar */}
-        <div className="flex items-center justify-between px-4 py-3 bg-surface border-b border-surface-border flex-wrap gap-2">
+        <div className="flex items-center justify-between px-4 py-3 bg-[#181818] border-b border-[#282828] flex-wrap gap-2">
           {/* Left: Media Title & Status */}
           <div className="flex items-center gap-3">
             <button
               onClick={closePlayer}
               aria-label="Close Player"
-              className="p-1.5 rounded-lg bg-surface-light hover:bg-surface-border text-text-secondary hover:text-white transition-colors"
+              className="p-1.5 rounded-lg bg-[#242424] hover:bg-[#333333] text-[#B3B3B3] hover:text-white transition-colors"
             >
               <X className="w-5 h-5" />
             </button>
@@ -182,15 +218,22 @@ export const PlayerModal: React.FC = () => {
                   {media.title}
                 </span>
                 {media.media_type === 'tv' && (
-                  <span className="px-2 py-0.5 rounded bg-primary/20 text-accent text-xs font-semibold">
+                  <span className="px-2 py-0.5 rounded bg-[#E50914]/20 text-[#E50914] text-xs font-semibold">
                     S{season} : E{episode}
                   </span>
                 )}
+                {resumeSeconds > 0 && (
+                  <span className="hidden md:inline-flex text-[10px] bg-[#282828] text-[#46D369] px-1.5 py-0.5 rounded font-mono">
+                    Resuming at {Math.floor(resumeSeconds / 60)}m
+                  </span>
+                )}
               </div>
-              <div className="flex items-center gap-2 text-[11px] text-text-muted">
-                <span className="flex items-center gap-1 text-primary">
+              <div className="flex items-center gap-2 text-[11px] text-[#808080]">
+                <span className="flex items-center gap-1 text-[#46D369]">
                   <ShieldCheck className="w-3.5 h-3.5" />
-                  VidFast Pop-under Shield Active
+                  {currentProvider === 'vaplayer'
+                    ? 'VaPlayer Event Shield Active'
+                    : 'VidFast Pop-under Filter Active'}
                 </span>
               </div>
             </div>
@@ -200,19 +243,19 @@ export const PlayerModal: React.FC = () => {
           <div className="flex items-center gap-2 flex-wrap">
             {/* TV Episode Controls */}
             {media.media_type === 'tv' && (
-              <div className="flex items-center gap-1 bg-surface-light border border-surface-border rounded-lg p-0.5">
+              <div className="flex items-center gap-1 bg-[#242424] border border-[#333333] rounded-lg p-0.5">
                 <button
                   onClick={handlePrevEpisode}
                   disabled={episode <= 1}
-                  className="px-2 py-1 text-xs text-text-secondary hover:text-white disabled:opacity-30 disabled:hover:text-text-secondary flex items-center gap-0.5"
+                  className="px-2 py-1 text-xs text-[#B3B3B3] hover:text-white disabled:opacity-30 disabled:hover:text-[#B3B3B3] flex items-center gap-0.5"
                   title="Previous Episode"
                 >
                   <ChevronLeft className="w-3.5 h-3.5" /> Prev
                 </button>
-                <span className="text-[11px] font-mono text-text-muted px-1">Ep {episode}</span>
+                <span className="text-[11px] font-mono text-[#808080] px-1">Ep {episode}</span>
                 <button
                   onClick={handleNextEpisode}
-                  className="px-2 py-1 text-xs text-text-secondary hover:text-white flex items-center gap-0.5"
+                  className="px-2 py-1 text-xs text-[#B3B3B3] hover:text-white flex items-center gap-0.5"
                   title="Next Episode"
                 >
                   Next <ChevronRight className="w-3.5 h-3.5" />
@@ -220,30 +263,31 @@ export const PlayerModal: React.FC = () => {
               </div>
             )}
 
-            {/* Server Selector */}
+            {/* Streaming Provider Switcher */}
             <div className="flex items-center gap-1">
-              <Server className="w-3.5 h-3.5 text-text-muted hidden sm:inline" />
+              <Server className="w-3.5 h-3.5 text-[#808080] hidden sm:inline" />
               <select
-                value={selectedServer}
-                onChange={(e) => setSelectedServer(e.target.value)}
-                className="bg-surface-light border border-surface-border text-white text-xs rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-primary cursor-pointer"
+                value={currentProvider}
+                onChange={(e) => handleProviderSwitch(e.target.value as StreamingProviderId)}
+                className="bg-[#242424] border border-[#383838] text-white text-xs font-semibold rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-[#E50914] cursor-pointer transition-colors"
+                title="Select Streaming Server"
               >
-                {SERVERS.map((srv) => (
-                  <option key={srv.id} value={srv.id}>
-                    {srv.name}
+                {PROVIDERS.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
                   </option>
                 ))}
               </select>
             </div>
 
-            {/* Download Button (Triggers Fasel HD Modal) */}
+            {/* Direct Download Button */}
             <button
               onClick={() => {
                 closePlayer();
                 openDownload(media, season, episode);
               }}
-              className="p-1.5 rounded-lg bg-surface-light hover:bg-surface-border text-text-secondary hover:text-primary transition-colors"
-              title="Download via Fasel HD"
+              className="p-1.5 rounded-lg bg-[#242424] hover:bg-[#333333] text-[#B3B3B3] hover:text-[#E50914] transition-colors"
+              title="Direct Download"
             >
               <Download className="w-4 h-4" />
             </button>
@@ -253,8 +297,8 @@ export const PlayerModal: React.FC = () => {
               onClick={() => toggleFavorite(media)}
               className={`p-1.5 rounded-lg transition-colors ${
                 isFav
-                  ? 'bg-primary/20 text-primary border border-primary/40'
-                  : 'bg-surface-light text-text-secondary hover:text-white'
+                  ? 'bg-[#E50914]/20 text-[#E50914] border border-[#E50914]/40'
+                  : 'bg-[#242424] text-[#B3B3B3] hover:text-white'
               }`}
               title={isFav ? 'In Favorites' : 'Add to Favorites'}
             >
@@ -264,16 +308,16 @@ export const PlayerModal: React.FC = () => {
             {/* Share Link Button */}
             <button
               onClick={handleShare}
-              className="p-1.5 rounded-lg bg-surface-light hover:bg-surface-border text-text-secondary hover:text-white transition-colors relative"
+              className="p-1.5 rounded-lg bg-[#242424] hover:bg-[#333333] text-[#B3B3B3] hover:text-white transition-colors relative"
               title="Share Title"
             >
-              {copiedLink ? <Check className="w-4 h-4 text-primary" /> : <Share2 className="w-4 h-4" />}
+              {copiedLink ? <Check className="w-4 h-4 text-[#46D369]" /> : <Share2 className="w-4 h-4" />}
             </button>
 
             {/* Theater Mode Toggle */}
             <button
               onClick={() => setIsTheaterMode(!isTheaterMode)}
-              className="p-1.5 rounded-lg bg-surface-light hover:bg-surface-border text-text-secondary hover:text-white transition-colors hidden md:block"
+              className="p-1.5 rounded-lg bg-[#242424] hover:bg-[#333333] text-[#B3B3B3] hover:text-white transition-colors hidden md:block"
               title="Theater Mode"
             >
               <Maximize2 className="w-4 h-4" />
@@ -281,39 +325,72 @@ export const PlayerModal: React.FC = () => {
           </div>
         </div>
 
+        {/* Auto Next Episode Notification Overlay */}
+        {autoNextNotice && (
+          <div className="bg-[#E50914] text-white text-xs font-bold py-2 px-4 flex items-center justify-between animate-fadeIn">
+            <span>Episode completed! Playing Episode {autoNextNotice} in 3 seconds...</span>
+            <button
+              onClick={() => {
+                openPlayer(media, season, autoNextNotice);
+                setAutoNextNotice(null);
+              }}
+              className="underline hover:text-black font-semibold ml-4"
+            >
+              Play Now
+            </button>
+          </div>
+        )}
+
         {/* Embedded Player Frame */}
         <div
           ref={videoWrapperRef}
           className="relative w-full aspect-video bg-black flex-grow flex items-center justify-center overflow-hidden"
         >
-          <iframe
-            key={`${selectedServer}-${tmdbId}-${season}-${episode}`}
-            src={getEmbedUrl()}
-            title={media.title}
-            className="w-full h-full border-0"
-            allowFullScreen
-            allow="autoplay; encrypted-media; picture-in-picture; fullscreen; clipboard-write; accelerometer; gyroscope"
-            referrerPolicy="no-referrer"
-            loading="eager"
-            onLoad={() => {
-              if (videoWrapperRef.current) {
-                killPlayerOverlays(videoWrapperRef.current);
-              }
-            }}
-          />
+          {isSwitching ? (
+            <div className="flex flex-col items-center justify-center gap-3 text-[#B3B3B3]">
+              <div className="w-8 h-8 border-2 border-[#E50914] border-t-transparent rounded-full animate-spin" />
+              <p className="text-sm">Connecting to {currentProvider === 'vaplayer' ? 'VaPlayer Primary' : 'VidFast Fallback'}...</p>
+            </div>
+          ) : (
+            <iframe
+              id="player-iframe"
+              key={`${currentProvider}-${tmdbId}-${season}-${episode}`}
+              src={embedUrl}
+              title={media.title}
+              className="w-full h-full border-0"
+              allowFullScreen
+              allow="autoplay; encrypted-media; picture-in-picture; fullscreen; clipboard-write; accelerometer; gyroscope"
+              referrerPolicy="no-referrer"
+              loading="eager"
+              onLoad={handleIframeLoaded}
+              onError={() => {
+                if (currentProvider === 'vaplayer') {
+                  setCurrentProvider('vidfast');
+                }
+              }}
+            />
+          )}
         </div>
 
         {/* Bottom Status & AdBlock Notification Bar */}
-        <div className="px-4 py-2 bg-surface text-xs flex items-center justify-between border-t border-surface-border text-text-muted">
+        <div className="px-4 py-2 bg-[#181818] text-xs flex items-center justify-between border-t border-[#282828] text-[#808080]">
           <div className="flex items-center gap-3">
-            <span className="flex items-center gap-1 text-[11px]">
-              <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-              Connected to {selectedServer === 'vidfast' ? 'VidFast.vc High-Speed Embed API' : selectedServer}
+            <span className="flex items-center gap-1.5 text-[11px]">
+              <span className="w-2 h-2 rounded-full bg-[#E50914] animate-pulse" />
+              Connected: {currentProvider === 'vaplayer' ? 'VaPlayer Primary (vidapi.ru)' : 'VidFast.vc Fallback'}
             </span>
+            {currentProvider === 'vidfast' && (
+              <button
+                onClick={() => handleProviderSwitch('vaplayer')}
+                className="text-[11px] text-[#E50914] hover:underline flex items-center gap-1"
+              >
+                <RotateCcw className="w-3 h-3" /> Retry VaPlayer
+              </button>
+            )}
           </div>
           <div className="flex items-center gap-3 text-[11px]">
-            <span>Theme: #16A085</span>
-            <span className="hidden sm:inline">Sandbox: Secure Isolator</span>
+            <span>Theme: #E50914</span>
+            <span className="hidden sm:inline">Resume: Active</span>
           </div>
         </div>
       </div>

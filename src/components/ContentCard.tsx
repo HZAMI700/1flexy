@@ -186,7 +186,7 @@ export const ContentCard: React.FC<ContentCardProps> = ({
                   <motion.button
                     whileHover={{ scale: 1.12 }}
                     whileTap={{ scale: 0.92 }}
-                    onClick={() => openPlayer(media, 1, 1)}
+                    onClick={() => openPlayer(media, media.current_season || 1, media.current_episode || 1)}
                     className="w-8 h-8 rounded-full bg-white text-black hover:bg-white/90 flex items-center justify-center transition-colors shadow-lg"
                     title="Play"
                   >

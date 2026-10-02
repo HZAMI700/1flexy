@@ -19,6 +19,14 @@ const nextConfig = {
         protocol: "https",
         hostname: "m.media-amazon.com",
       },
+      {
+        protocol: "https",
+        hostname: "vidapi.ru",
+      },
+      {
+        protocol: "https",
+        hostname: "vaplayer.ru",
+      },
     ],
     unoptimized: true,
   },
